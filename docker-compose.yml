@@ -41,5 +41,18 @@ services:
       - postgres
       - redis
 
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:3001"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "development-secret"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
 volumes:
   postgres_data:

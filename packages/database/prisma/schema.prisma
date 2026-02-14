@@ -7,47 +7,97 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model League {
-  id        String    @id @default(uuid())
-  externalId Int      @unique
-  name      String
-  country   String
-  fixtures  Fixture[]
+model User {
+  id         String      @id @default(uuid())
+  email      String      @unique
+  name       String?
+  role       String      @default("USER")
+  portfolios Portfolio[]
+  createdAt  DateTime    @default(now())
 }
 
-model Team {
+model League {
   id         String    @id @default(uuid())
   externalId Int       @unique
   name       String
+  country    String
+  fixtures   Fixture[]
+}
+
+model Team {
+  id           String    @id @default(uuid())
+  externalId   Int       @unique
+  name         String
   homeFixtures Fixture[] @relation("HomeTeam")
   awayFixtures Fixture[] @relation("AwayTeam")
 }
 
 model Fixture {
+  id          String       @id @default(uuid())
+  externalId  Int          @unique
+  date        DateTime
+  leagueId    String
+  league      League       @relation(fields: [leagueId], references: [id])
+  homeTeamId  String
+  homeTeam    Team         @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId  String
+  awayTeam    Team         @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  homeScore   Int?
+  awayScore   Int?
+  status      String
+  predictions Prediction[]
+}
+
+model Portfolio {
   id            String   @id @default(uuid())
-  externalId    Int      @unique
-  date          DateTime
-  leagueId      String
-  league        League   @relation(fields: [leagueId], references: [id])
-  homeTeamId    String
-  homeTeam      Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
-  awayTeamId    String
-  awayTeam      Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
-  homeScore     Int?
-  awayScore     Int?
-  status        String
-  predictions   Prediction[]
+  name          String
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  strategy      String   // e.g., "CONSERVATIVE", "AGGRESSIVE"
+  riskValue     Float    // e.g., 0.25 (Fractional Kelly)
+  bankroll      Float
+  initialBankroll Float
+  isActive      Boolean  @default(true)
+  maxDrawdown   Float?
+  circuitBreakerThreshold Float @default(0.15)
+  bets          Bet[]
+  createdAt     DateTime @default(now())
 }
 
 model Prediction {
-  id            String   @id @default(uuid())
-  fixtureId     String
-  fixture       Fixture  @relation(fields: [fixtureId], references: [id])
-  homeProb      Float
-  drawProb      Float
-  awayProb      Float
-  ev            Float
-  confidence    Float
+  id             String   @id @default(uuid())
+  fixtureId      String
+  fixture        Fixture  @relation(fields: [fixtureId], references: [id])
+  modelVersion   String
+  homeProb       Float
+  drawProb       Float
+  awayProb       Float
+  ev             Float
+  confidence     Float
   recommendedBet String
-  createdAt     DateTime @default(now())
+
+  // Auditing & Traceability
+  featureSnapshot Json?   // The "Traceability" requirement
+
+  bets           Bet[]
+  createdAt      DateTime @default(now())
+}
+
+model Bet {
+  id             String     @id @default(uuid())
+  portfolioId    String
+  portfolio      Portfolio  @relation(fields: [portfolioId], references: [id])
+  predictionId   String
+  prediction     Prediction @relation(fields: [predictionId], references: [id])
+
+  stake          Float
+  odds           Float
+  closingOdds    Float?
+  betType        String     // e.g., "HOME", "DRAW", "AWAY"
+
+  status         String     @default("PENDING") // PENDING, WON, LOST, VOID
+  profit         Float?
+
+  settledAt      DateTime?
+  createdAt      DateTime   @default(now())
 }

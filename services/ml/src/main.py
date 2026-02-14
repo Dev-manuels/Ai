@@ -28,10 +28,20 @@ def predict(request: PredictionRequest):
     draw_prob = np.sum(np.diag(probs_matrix))
     away_win_prob = np.sum(np.triu(probs_matrix, 1).T)
 
+    # Feature snapshot for traceability
+    features = {
+        "home_team": request.home_team,
+        "away_team": request.away_team,
+        "model_type": "Dixon-Coles",
+        "timestamp": pd.Timestamp.now().isoformat()
+        # In Phase 2/3, we add more complex features here
+    }
+
     return {
         "home_win": float(home_win_prob),
         "draw": float(draw_prob),
-        "away_win": float(away_win_prob)
+        "away_win": float(away_win_prob),
+        "snapshot": features
     }
 
 @app.post("/train")
