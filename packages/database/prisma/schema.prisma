@@ -53,21 +53,57 @@ model Portfolio {
   name          String
   userId        String
   user          User     @relation(fields: [userId], references: [id])
-  strategy      String   // e.g., "CONSERVATIVE", "AGGRESSIVE"
   riskValue     Float    // e.g., 0.25 (Fractional Kelly)
   bankroll      Float
   initialBankroll Float
   isActive      Boolean  @default(true)
   maxDrawdown   Float?
   circuitBreakerThreshold Float @default(0.15)
+
+  allocations   StrategyAllocation[]
   bets          Bet[]
   createdAt     DateTime @default(now())
+}
+
+model Strategy {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  type        String   // PRE_MATCH, LIVE, ARBITRAGE, VOLATILITY
+  status      String   @default("ACTIVE") // ACTIVE, INACTIVE, RETIRED
+  description String?
+
+  allocations StrategyAllocation[]
+  predictions Prediction[]
+  createdAt   DateTime @default(now())
+}
+
+model StrategyAllocation {
+  id          String    @id @default(uuid())
+  strategyId  String
+  strategy    Strategy  @relation(fields: [strategyId], references: [id])
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+
+  weight      Float     // Percentage of portfolio bankroll allocated
+  isActive    Boolean   @default(true)
+
+  performance Json?     // ROI, MDD per strategy-portfolio link
+  createdAt   DateTime  @default(now())
+}
+
+model MasterBankroll {
+  id              String   @id @default(uuid())
+  totalCapital    Float
+  availableCapital Float
+  updatedAt       DateTime @updatedAt
 }
 
 model Prediction {
   id             String   @id @default(uuid())
   fixtureId      String
   fixture        Fixture  @relation(fields: [fixtureId], references: [id])
+  strategyId     String?
+  strategy       Strategy? @relation(fields: [strategyId], references: [id])
   modelVersion   String
   homeProb       Float
   drawProb       Float

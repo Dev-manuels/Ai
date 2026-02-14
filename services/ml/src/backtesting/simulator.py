@@ -95,6 +95,49 @@ class BacktestingSimulator:
             return total_weighted_odds / (stake - remaining_stake)
         return 0
 
+    def run_monte_carlo(self, n_sims: int = 1000, n_steps: int = 100,
+                        avg_win_rate: float = 0.55, avg_odds: float = 1.9,
+                        black_swan_prob: float = 0.01):
+        """
+        Runs Monte Carlo simulations including Black Swan scenarios.
+        """
+        all_paths = []
+        for _ in range(n_sims):
+            path = [self.initial_bankroll]
+            current_bankroll = self.initial_bankroll
+
+            for _ in range(n_steps):
+                # Standard step
+                if np.random.random() < avg_win_rate:
+                    current_bankroll += current_bankroll * 0.02 * (avg_odds - 1)
+                else:
+                    current_bankroll -= current_bankroll * 0.02
+
+                # Black Swan check (e.g. 5% bankroll wipe)
+                if np.random.random() < black_swan_prob:
+                    current_bankroll *= 0.95
+
+                path.append(current_bankroll)
+                if current_bankroll <= 0: break
+
+            all_paths.append(path)
+
+        return all_paths
+
+    def stress_test(self, strategy_returns: pd.DataFrame, shock_scenario: str = 'LIQUIDITY_CRUNCH'):
+        """
+        Simulates strategy performance under specific stress scenarios.
+        """
+        if shock_scenario == 'LIQUIDITY_CRUNCH':
+            # Increase slippage by 5x
+            return strategy_returns * 0.7
+        elif shock_scenario == 'REGIME_SHIFT':
+            # Correlate all strategies to 1.0 (loss of diversification)
+            mean_return = strategy_returns.mean(axis=1)
+            return pd.DataFrame({col: mean_return for col in strategy_returns.columns})
+
+        return strategy_returns
+
     def calculate_metrics(self) -> Dict:
         if not self.results: return {}
         

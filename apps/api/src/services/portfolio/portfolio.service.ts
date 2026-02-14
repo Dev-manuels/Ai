@@ -9,8 +9,8 @@ export interface PortfolioCreateInput {
 }
 
 export class PortfolioService {
-  async createPortfolio(input: PortfolioCreateInput) {
-    return prisma.portfolio.create({
+  async createPortfolio(input: Omit<PortfolioCreateInput, 'strategy'>) {
+    return (prisma as any).portfolio.create({
       data: {
         ...input,
         bankroll: input.initialBankroll,
@@ -19,9 +19,12 @@ export class PortfolioService {
   }
 
   async getPortfolios(userId: string) {
-    return prisma.portfolio.findMany({
+    return (prisma as any).portfolio.findMany({
       where: { userId },
       include: {
+        allocations: {
+          include: { strategy: true }
+        },
         bets: {
           take: 10,
           orderBy: { createdAt: 'desc' }
