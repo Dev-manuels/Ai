@@ -75,10 +75,10 @@ model Prediction {
   ev             Float
   confidence     Float
   recommendedBet String
-
+  
   // Auditing & Traceability
   featureSnapshot Json?   // The "Traceability" requirement
-
+  
   bets           Bet[]
   createdAt      DateTime @default(now())
 }
@@ -89,15 +89,15 @@ model Bet {
   portfolio      Portfolio  @relation(fields: [portfolioId], references: [id])
   predictionId   String
   prediction     Prediction @relation(fields: [predictionId], references: [id])
-
+  
   stake          Float
   odds           Float
   closingOdds    Float?
   betType        String     // e.g., "HOME", "DRAW", "AWAY"
-
+  
   status         String     @default("PENDING") // PENDING, WON, LOST, VOID
   profit         Float?
-
+  
   settledAt      DateTime?
   createdAt      DateTime   @default(now())
 }

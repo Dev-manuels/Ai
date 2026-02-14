@@ -12,15 +12,15 @@ class ModelRegistry:
         version = datetime.now().strftime("%Y%m%d_%H%M%S")
         model_id = f"{name}_{version}"
         path = os.path.join(self.storage_path, f"{model_id}.joblib")
-
+        
         joblib.dump(model, path)
-
+        
         # Save metadata
         if metadata:
             with open(os.path.join(self.storage_path, f"{model_id}_meta.json"), "w") as f:
                 import json
                 json.dump(metadata, f)
-
+        
         return model_id
 
     def load_model(self, model_id: str) -> Any:

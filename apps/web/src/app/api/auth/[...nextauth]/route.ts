@@ -11,7 +11,7 @@ const handler = NextAuth({
       },
       async authorize(credentials) {
         const adminToken = process.env.ADMIN_ACCESS_TOKEN;
-
+        
         if (!adminToken) {
           console.error("ADMIN_ACCESS_TOKEN is not set in environment variables");
           return null;

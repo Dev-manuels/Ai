@@ -13,18 +13,18 @@ class OddsIntelligenceEngine:
         df_hist = pd.DataFrame(historical_odds)
         if not df_hist.empty:
             df_hist['timestamp'] = pd.to_datetime(df_hist['timestamp'])
-
+            
         movement = self.market_engine.calculate_movement_features(df_hist)
-
+        
         # Identify sharp price (Pinnacle)
         sharp_odds = next((o for o in current_odds if o['bookmaker'] == 'Pinnacle'), None)
-
+        
         analysis = {
             'movement': movement,
             'sharp_benchmarked': sharp_odds is not None,
             'is_volatile': abs(movement.get('vel_home', 0)) > 0.05
         }
-
+        
         return analysis
 
     def calculate_clv(self, closing_odds: float, bet_odds: float) -> float:

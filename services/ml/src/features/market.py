@@ -25,19 +25,19 @@ class MarketEngine:
             return {}
 
         odds_history = odds_history.sort_values('timestamp')
-
+        
         # Opening vs Current
         opening = odds_history.iloc[0]
         current = odds_history.iloc[-1]
-
+        
         # Magnitude (log change)
         mag_home = np.log(current['home'] / opening['home'])
         mag_away = np.log(current['away'] / opening['away'])
-
+        
         # Velocity (Magnitude / Time in hours)
         time_diff = (current['timestamp'] - opening['timestamp']).total_seconds() / 3600
         vel_home = mag_home / max(time_diff, 0.01)
-
+        
         return {
             'mag_home': mag_home,
             'mag_away': mag_away,
@@ -52,6 +52,6 @@ class MarketEngine:
         """
         soft_probs = self.remove_margin(soft_odds)
         sharp_probs = self.remove_margin(sharp_odds)
-
+        
         # Using Euclidean distance or simple difference for divergence
         return np.sum(np.abs(np.array(soft_probs) - np.array(sharp_probs)))

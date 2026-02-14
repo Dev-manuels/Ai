@@ -15,7 +15,7 @@ export class PerformanceService {
     const returns = bets.map(b => b.profit || 0);
     const totalProfit = returns.reduce((a, b) => a + b, 0);
     const avgReturn = totalProfit / returns.length;
-
+    
     // 1. Sharpe Ratio (Simplified - assuming 0% risk-free rate for now)
     const stdDev = this.calculateStandardDeviation(returns);
     const sharpeRatio = stdDev === 0 ? 0 : (avgReturn / stdDev) * Math.sqrt(365); // Annualized

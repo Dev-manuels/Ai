@@ -24,7 +24,7 @@ class StackingEnsemble:
             for i in range(n_models):
                 avg_probs += base_predictions[:, i*3:(i+1)*3]
             return avg_probs / n_models
-
+            
         return self.meta_model.predict_proba(base_predictions)
 
 class ProbabilityCalibrator:
@@ -46,11 +46,11 @@ class ProbabilityCalibrator:
 
     def calibrate(self, probs: np.ndarray) -> np.ndarray:
         if not self.regressors: return probs
-
+        
         calibrated = np.zeros_like(probs)
         for i in range(3):
             calibrated[:, i] = self.regressors[i].transform(probs[:, i])
-
+            
         # Re-normalize
         row_sums = calibrated.sum(axis=1)
         return calibrated / row_sums[:, np.newaxis]

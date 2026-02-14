@@ -33,7 +33,7 @@ export class CorrelationService {
     }
 
     // 2. Temporal clustering (multiple bets in the same day)
-    const sameDayBets = activeBets.filter(b =>
+    const sameDayBets = activeBets.filter(b => 
       new Date(b.prediction.fixture.date).toDateString() === new Date(newFixture.date).toDateString()
     );
     if (sameDayBets.length >= 5) {

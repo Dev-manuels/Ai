@@ -15,59 +15,59 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({ data, type }
         {type === 'profit' ? (
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-            <XAxis
-              dataKey="date"
-              stroke="#64748b"
-              fontSize={12}
-              tickLine={false}
+            <XAxis 
+              dataKey="date" 
+              stroke="#64748b" 
+              fontSize={12} 
+              tickLine={false} 
               axisLine={false}
             />
-            <YAxis
-              stroke="#64748b"
-              fontSize={12}
-              tickLine={false}
+            <YAxis 
+              stroke="#64748b" 
+              fontSize={12} 
+              tickLine={false} 
               axisLine={false}
               tickFormatter={(value) => `$${value}`}
             />
-            <Tooltip
+            <Tooltip 
               contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b' }}
               itemStyle={{ color: '#10b981' }}
             />
-            <Line
-              type="monotone"
-              dataKey="profit"
-              stroke="#10b981"
-              strokeWidth={2}
-              dot={false}
+            <Line 
+              type="monotone" 
+              dataKey="profit" 
+              stroke="#10b981" 
+              strokeWidth={2} 
+              dot={false} 
             />
           </LineChart>
         ) : (
           <AreaChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-            <XAxis
-              dataKey="date"
-              stroke="#64748b"
-              fontSize={12}
-              tickLine={false}
+            <XAxis 
+              dataKey="date" 
+              stroke="#64748b" 
+              fontSize={12} 
+              tickLine={false} 
               axisLine={false}
             />
-            <YAxis
-              stroke="#64748b"
-              fontSize={12}
-              tickLine={false}
+            <YAxis 
+              stroke="#64748b" 
+              fontSize={12} 
+              tickLine={false} 
               axisLine={false}
               tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
             />
-            <Tooltip
+            <Tooltip 
               contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b' }}
               itemStyle={{ color: '#ef4444' }}
             />
-            <Area
-              type="monotone"
-              dataKey="drawdown"
-              stroke="#ef4444"
-              fill="#ef4444"
-              fillOpacity={0.1}
+            <Area 
+              type="monotone" 
+              dataKey="drawdown" 
+              stroke="#ef4444" 
+              fill="#ef4444" 
+              fillOpacity={0.1} 
             />
           </AreaChart>
         )}

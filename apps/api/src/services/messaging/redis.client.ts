@@ -29,7 +29,7 @@ export class RedisMessaging {
   async subscribeToTasks(callback: (fixtureId: string) => Promise<void>) {
     while (true) {
       try {
-        // Read from group to track offsets automatically.
+        // Read from group to track offsets automatically. 
         // '>' means only messages never delivered to other consumers.
         const result = await this.client.xReadGroup(
           commandOptions({ isolated: true }),

@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from pydantic import BaseModel
 from typing import List
 import pandas as pd
@@ -6,8 +6,13 @@ import numpy as np
 from .models.dixon_coles import DixonColesModel
 from .features.engine import FeatureEngine
 from .ai.reasoning import ReasoningEngine
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
 app = FastAPI(title="Football Intelligence ML Service")
+
+# Metrics
+prediction_counter = Counter('ml_predictions_total', 'Total predictions made')
+inference_latency = Histogram('ml_inference_latency_seconds', 'Inference latency')
 
 model = DixonColesModel()
 engine = FeatureEngine()
@@ -23,11 +28,12 @@ def health():
 
 @app.post("/predict")
 def predict(request: PredictionRequest):
+    prediction_counter.inc()
     probs_matrix = model.predict_probs(request.home_team, request.away_team)
     home_win_prob = np.sum(np.tril(probs_matrix, -1).T)
     draw_prob = np.sum(np.diag(probs_matrix))
     away_win_prob = np.sum(np.triu(probs_matrix, 1).T)
-
+    
     # Feature snapshot for traceability
     features = {
         "home_team": request.home_team,
@@ -36,7 +42,7 @@ def predict(request: PredictionRequest):
         "timestamp": pd.Timestamp.now().isoformat()
         # In Phase 2/3, we add more complex features here
     }
-
+    
     return {
         "home_win": float(home_win_prob),
         "draw": float(draw_prob),
@@ -49,3 +55,7 @@ def train(fixtures: List[dict]):
     df = pd.DataFrame(fixtures)
     model.fit(df)
     return {"status": "trained", "teams_count": len(model.teams)}
+
+@app.get("/metrics")
+def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)

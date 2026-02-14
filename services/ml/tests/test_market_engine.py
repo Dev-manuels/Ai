@@ -9,7 +9,7 @@ from features.market import MarketEngine
 
 def test_market_engine():
     engine = MarketEngine()
-
+    
     # Test margin removal
     odds = [2.0, 3.4, 3.8] # sum(1/odds) = 0.5 + 0.294 + 0.263 = 1.057
     probs = engine.remove_margin(odds)
@@ -25,7 +25,7 @@ def test_market_engine():
     ]
     df_hist = pd.DataFrame(hist_data)
     movement = engine.calculate_movement_features(df_hist)
-
+    
     assert movement['mag_home'] < 0 # Price dropped
     assert movement['time_diff_hours'] == 2.0
     print(f"Movement features: {movement}")

@@ -33,7 +33,7 @@ export class RiskService {
     // 2. Exposure Limit Check (Default 5% max concurrent exposure)
     const activeExposure = portfolio.bets.reduce((acc, bet) => acc + bet.stake, 0);
     const totalExposureWithNewBet = activeExposure + (portfolio.bankroll * suggestedStake);
-
+    
     if (totalExposureWithNewBet > (portfolio.bankroll * 0.05)) {
       return { eligible: false, reason: 'Exposure limit exceeded: Max 5% concurrent exposure' };
     }
