@@ -15,7 +15,23 @@ export class RedisMessaging {
     await this.client.xAdd('prediction_tasks', '*', { fixtureId });
   }
 
-  async subscribeToPredictions(callback: (fixtureId: string) => void) {
-    // Subscriber logic for background workers
+  async subscribeToTasks(callback: (fixtureId: string) => Promise<void>) {
+    while (true) {
+      try {
+        const result = await this.client.xRead(
+          { key: 'prediction_tasks', id: '0' },
+          { COUNT: 1, BLOCK: 5000 }
+        );
+        if (result && result.length > 0) {
+          const { messages } = result[0];
+          for (const message of messages) {
+            await callback(message.data.fixtureId as string);
+            await this.client.xAck('prediction_tasks', 'group1', message.id);
+          }
+        }
+      } catch (error) {
+        console.error('Redis Stream Error:', error);
+      }
+    }
   }
 }
