@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import { apiKeyMiddleware } from './middleware/api-key.middleware';
 import { Server } from 'socket.io';
 import { createServer } from 'http';
+import { LiveBroadcastService } from './services/messaging/live-broadcast.service';
 
 const app = express();
 const httpServer = createServer(app);
@@ -77,12 +78,13 @@ httpServer.listen(PORT, () => {
 io.on('connection', (socket) => {
   console.log('Client connected to real-time stream');
   
-  socket.on('subscribe:odds', (fixtureId) => {
-    socket.join(`odds:${fixtureId}`);
+  socket.on('subscribe:fixture', (fixtureId) => {
+    socket.join(`fixture:${fixtureId}`);
+    console.log(`Client subscribed to fixture:${fixtureId}`);
   });
 });
 
-// For broadcasting updates
-export const broadcastOddsUpdate = (fixtureId: string, odds: any) => {
-  io.to(`odds:${fixtureId}`).emit('odds:update', odds);
-};
+const broadcastService = new LiveBroadcastService(process.env.REDIS_URL || 'redis://redis:6379', io);
+broadcastService.connect().then(() => {
+  broadcastService.run();
+});

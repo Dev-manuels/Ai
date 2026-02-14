@@ -101,3 +101,26 @@ model Bet {
   settledAt      DateTime?
   createdAt      DateTime   @default(now())
 }
+
+model MatchEvent {
+  id         String   @id @default(uuid())
+  fixtureId  String
+  type       String   // GOAL, CARD, CORNER, SHOT, etc.
+  timestamp  DateTime
+  data       Json
+  createdAt  DateTime @default(now())
+
+  @@index([fixtureId, timestamp])
+}
+
+model InPlayOdds {
+  id         String   @id @default(uuid())
+  fixtureId  String
+  bookmaker  String
+  market     String
+  values     Json
+  timestamp  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([fixtureId, timestamp])
+}

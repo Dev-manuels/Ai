@@ -75,3 +75,57 @@ class BacktestingSimulator:
             'max_drawdown': max_drawdown,
             'final_bankroll': self.bankroll
         }
+
+class LiveEventGenerator:
+    """
+    Generates deterministic synthetic match events for backtesting.
+    """
+    def __init__(self, seed: int = 42):
+        self.rng = np.random.default_rng(seed)
+
+    def generate_match_stream(self, fixture_id: str, home_exp_goals: float, away_exp_goals: float):
+        events = []
+
+        # 1. Generate Goals
+        h_goals = self.rng.poisson(home_exp_goals)
+        a_goals = self.rng.poisson(away_exp_goals)
+
+        for _ in range(h_goals):
+            events.append({
+                'fixtureId': fixture_id,
+                'type': 'GOAL',
+                'timestamp': self.rng.integers(1, 95),
+                'data': {'team': 'home'}
+            })
+
+        for _ in range(a_goals):
+            events.append({
+                'fixtureId': fixture_id,
+                'type': 'GOAL',
+                'timestamp': self.rng.integers(1, 95),
+                'data': {'team': 'away'}
+            })
+
+        # 2. Generate SHOTS and CORNERS (correlated with goals)
+        for team, exp in [('home', home_exp_goals), ('away', away_exp_goals)]:
+            shots = self.rng.poisson(exp * 5) # Heuristic: 5 shots per goal
+            for _ in range(shots):
+                events.append({
+                    'fixtureId': fixture_id,
+                    'type': 'SHOT',
+                    'timestamp': self.rng.integers(1, 95),
+                    'data': {'team': team}
+                })
+
+        # Sort by timestamp
+        events.sort(key=lambda x: x['timestamp'])
+
+        # Update scores in goal events
+        h_score, a_score = 0, 0
+        for e in events:
+            if e['type'] == 'GOAL':
+                if e['data']['team'] == 'home': h_score += 1
+                else: a_score += 1
+                e['data']['score'] = [h_score, a_score]
+
+        return events

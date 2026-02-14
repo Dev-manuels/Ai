@@ -3,6 +3,7 @@
 import React from 'react';
 import { PredictionCard } from '../../components/PredictionCard';
 import { PerformanceChart } from '../../components/PerformanceChart';
+import { LiveDashboard } from '../../components/LiveDashboard';
 import { TrendingUp, Activity, ShieldAlert, BarChart3 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -109,6 +110,10 @@ export default function Dashboard() {
           <p className="text-xs text-slate-500 uppercase font-bold mb-1">Portfolios</p>
           <p className="text-xl font-mono text-slate-300">3 Active</p>
         </div>
+      </div>
+
+      <div className="mb-12">
+        <LiveDashboard />
       </div>
 
       <div className="mb-8">
