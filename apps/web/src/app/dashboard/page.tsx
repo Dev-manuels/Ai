@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { PredictionCard } from '../../components/PredictionCard';
+import { PerformanceChart } from '../../components/PerformanceChart';
+import { TrendingUp, Activity, ShieldAlert, BarChart3 } from 'lucide-react';
 
 export default function Dashboard() {
   const [predictions, setPredictions] = React.useState<any[]>([]);
@@ -63,10 +65,52 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {displayPredictions.map((p, i) => (
-          <PredictionCard key={i} fixture={p.fixture || p} prediction={p.prediction || p} />
-        ))}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6">
+          <div className="flex items-center gap-2 mb-6 text-slate-400">
+            <TrendingUp size={18} className="text-emerald-400" />
+            <h2 className="text-sm font-bold uppercase tracking-wider">Cumulative Profit</h2>
+          </div>
+          <PerformanceChart data={chartData} type="profit" />
+        </div>
+        <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6">
+          <div className="flex items-center gap-2 mb-6 text-slate-400">
+            <ShieldAlert size={18} className="text-rose-400" />
+            <h2 className="text-sm font-bold uppercase tracking-wider">Historical Drawdown</h2>
+          </div>
+          <PerformanceChart data={chartData} type="drawdown" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+        <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl">
+          <p className="text-xs text-slate-500 uppercase font-bold mb-1">Sharpe Ratio</p>
+          <p className="text-xl font-mono text-indigo-400">{stats.sharpe}</p>
+        </div>
+        <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl">
+          <p className="text-xs text-slate-500 uppercase font-bold mb-1">Profit Factor</p>
+          <p className="text-xl font-mono text-indigo-400">{stats.profitFactor}</p>
+        </div>
+        <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl">
+          <p className="text-xs text-slate-500 uppercase font-bold mb-1">Active Exposure</p>
+          <p className="text-xl font-mono text-emerald-400">3.2%</p>
+        </div>
+        <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl">
+          <p className="text-xs text-slate-500 uppercase font-bold mb-1">Portfolios</p>
+          <p className="text-xl font-mono text-slate-300">3 Active</p>
+        </div>
+      </div>
+
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+          <Activity size={20} className="text-indigo-400" />
+          Active Intelligence Signals
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {displayPredictions.map((p, i) => (
+            <PredictionCard key={i} fixture={p.fixture || p} prediction={p.prediction || p} />
+          ))}
+        </div>
       </div>
     </div>
   );
