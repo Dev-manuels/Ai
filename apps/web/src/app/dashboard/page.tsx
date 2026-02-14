@@ -39,8 +39,18 @@ export default function Dashboard() {
     roi: "5.2%",
     clv: "+3.1%",
     winRate: "58%",
-    drawdown: "12%"
+    drawdown: "12%",
+    sharpe: "1.85",
+    profitFactor: "1.42"
   };
+
+  const chartData = [
+    { date: 'Jan', profit: 1000, drawdown: 0 },
+    { date: 'Feb', profit: 1200, drawdown: 0.02 },
+    { date: 'Mar', profit: 1100, drawdown: 0.08 },
+    { date: 'Apr', profit: 1500, drawdown: 0.03 },
+    { date: 'May', profit: 1800, drawdown: 0.01 },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-8">
@@ -49,16 +59,16 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold tracking-tight">Institutional Intelligence</h1>
           <p className="text-slate-400 mt-2">Quantitative edge detection for professional markets.</p>
         </div>
-        <div className="flex gap-16">
-          <div className="text-right min-w-[100px]">
+        <div className="flex gap-20">
+          <div className="text-right min-w-[120px]">
             <p className="text-xs text-slate-500 uppercase font-bold tracking-widest mb-1">Total ROI</p>
             <p className="text-2xl font-mono text-emerald-400">{stats.roi}</p>
           </div>
-          <div className="text-right min-w-[100px]">
+          <div className="text-right min-w-[140px]">
             <p className="text-xs text-slate-500 uppercase font-bold tracking-widest mb-1">Avg CLV</p>
             <p className="text-2xl font-mono text-indigo-400">{stats.clv}</p>
           </div>
-          <div className="text-right min-w-[120px]">
+          <div className="text-right min-w-[160px]">
             <p className="text-xs text-slate-500 uppercase font-bold tracking-widest mb-1">Max Drawdown</p>
             <p className="text-2xl font-mono text-rose-400">{stats.drawdown}</p>
           </div>

@@ -10,8 +10,15 @@ const handler = NextAuth({
         password: { label: "Access Token", type: "password" }
       },
       async authorize(credentials) {
+        const adminToken = process.env.ADMIN_ACCESS_TOKEN;
+
+        if (!adminToken) {
+          console.error("ADMIN_ACCESS_TOKEN is not set in environment variables");
+          return null;
+        }
+
         // Institutional verification logic
-        if (credentials?.email && credentials?.password === "hedgefund-token") {
+        if (credentials?.email && credentials?.password === adminToken) {
           return { id: "1", name: "Senior Analyst", email: credentials.email, role: "ADMIN" };
         }
         return null;
