@@ -38,16 +38,17 @@ export class LiveBroadcastService {
         );
 
         if (results) {
-          for (const { key, messages } of results) {
-            for (const message of messages) {
-              const fixtureId = message.data.fixtureId as string;
+          for (const stream of (results as any)) {
+            const key = stream.name;
+            for (const message of stream.messages) {
+              const fixtureId = message.message.fixtureId as string;
 
               if (key === this.predictionStream) {
-                const probs = JSON.parse(message.data.probs as string);
+                const probs = JSON.parse(message.message.probs as string);
                 this.io.to(`fixture:${fixtureId}`).emit('prediction:update', { fixtureId, probs });
               } else if (key === this.signalStream) {
-                const signal = JSON.parse(message.data.signal as string);
-                const execution = JSON.parse(message.data.execution as string);
+                const signal = JSON.parse(message.message.signal as string);
+                const execution = JSON.parse(message.message.execution as string);
                 this.io.emit('signal:new', { fixtureId, signal, execution });
               }
 

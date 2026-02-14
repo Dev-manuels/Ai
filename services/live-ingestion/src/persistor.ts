@@ -1,9 +1,10 @@
 import { createClient, commandOptions } from 'redis';
-import { PrismaClient } from '@prisma/client';
 
 export class LiveEventPersistor {
   private redis;
-  private prisma: PrismaClient;
+  private prisma: any;
+  private buffer: any[] = [];
+  private readonly bufferLimit = 100;
   private readonly eventStream = 'live_events';
   private readonly oddsStream = 'live_odds';
   private readonly groupName = 'persistor_group';
@@ -11,7 +12,12 @@ export class LiveEventPersistor {
 
   constructor(redisUrl: string) {
     this.redis = createClient({ url: redisUrl });
-    this.prisma = new PrismaClient();
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      this.prisma = new PrismaClient();
+    } catch (e) {
+      this.prisma = null;
+    }
   }
 
   async connect() {
@@ -22,6 +28,23 @@ export class LiveEventPersistor {
     try {
       await this.redis.xGroupCreate(this.oddsStream, this.groupName, '0', { MKSTREAM: true });
     } catch (e) {}
+  }
+
+  private async flushBuffer() {
+    if (this.buffer.length === 0) return;
+    const dataToSave = [...this.buffer];
+    this.buffer = [];
+
+    try {
+      await (this.prisma as any).inPlayOdds.createMany({
+        data: dataToSave
+      });
+      console.log(`Flushed ${dataToSave.length} odds to DB`);
+    } catch (e) {
+      console.error('Flush Error:', e);
+      // Put back to buffer on failure (simplified)
+      this.buffer = [...dataToSave, ...this.buffer].slice(0, 1000);
+    }
   }
 
   async run() {
@@ -40,27 +63,30 @@ export class LiveEventPersistor {
         );
 
         if (results) {
-          for (const { key, messages } of results) {
-            for (const message of messages) {
+          for (const stream of (results as any)) {
+            const key = stream.name;
+            for (const message of stream.messages) {
               if (key === this.eventStream) {
-                await this.prisma.matchEvent.create({
+                await (this.prisma as any).matchEvent.create({
                   data: {
-                    fixtureId: message.data.fixtureId as string,
-                    type: message.data.type as string,
-                    timestamp: new Date(parseInt(message.data.timestamp as string)),
-                    data: JSON.parse(message.data.data as string)
+                    fixtureId: message.message.fixtureId as string,
+                    type: message.message.type as string,
+                    timestamp: new Date(parseInt(message.message.timestamp as string)),
+                    data: JSON.parse(message.message.data as string)
                   }
                 });
               } else if (key === this.oddsStream) {
-                await this.prisma.inPlayOdds.create({
-                  data: {
-                    fixtureId: message.data.fixtureId as string,
-                    bookmaker: message.data.bookmaker as string,
-                    market: message.data.market as string,
-                    values: JSON.parse(message.data.values as string),
-                    timestamp: new Date(parseInt(message.data.timestamp as string))
-                  }
+                this.buffer.push({
+                  fixtureId: message.message.fixtureId as string,
+                  bookmaker: message.message.bookmaker as string,
+                  market: message.message.market as string,
+                  values: JSON.parse(message.message.values as string),
+                  timestamp: new Date(parseInt(message.message.timestamp as string))
                 });
+
+                if (this.buffer.length >= this.bufferLimit) {
+                  await this.flushBuffer();
+                }
               }
               await this.redis.xAck(key, this.groupName, message.id);
             }

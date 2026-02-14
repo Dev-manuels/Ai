@@ -5,6 +5,8 @@ from .models.live_engine import LiveMatchStateEngine
 from .models.dixon_coles import DixonColesModel
 from .execution import LiveEVEngine, ExecutionSimulator
 from .risk import LiveRiskManager, RegimeDetector
+from .sharp_money import SharpMoneyEngine
+from .market_intelligence import MarketIntelligenceEngine
 
 class LiveInferenceService:
     def __init__(self, redis_url: str):
@@ -21,6 +23,8 @@ class LiveInferenceService:
         self.execution_sim = ExecutionSimulator()
         self.risk_manager = LiveRiskManager()
         self.regime_detector = RegimeDetector()
+        self.sharp_engine = SharpMoneyEngine()
+        self.market_intel = MarketIntelligenceEngine()
 
         # Match states cache: fixtureId -> { score, elapsed, events, current_probs }
         self.match_states = {}
@@ -86,11 +90,37 @@ class LiveInferenceService:
         })
 
     def _handle_odds(self, fixture_id, data):
+        bookmaker = data[b'bookmaker'].decode()
         market_odds = json.loads(data[b'values'].decode())
         state = self.match_states.get(fixture_id)
 
+        # Update order book depth if available
+        if bookmaker == 'Betfair':
+            self.execution_sim.update_order_book(fixture_id, market_odds)
+
+        # Track prices for leadership and intelligence
+        for selection_odds in market_odds:
+            sel = selection_odds['selection']
+            price = selection_odds['odds']
+
+            self.sharp_engine.add_price(fixture_id, bookmaker, sel, price)
+            self.market_intel.update_consensus(fixture_id, bookmaker, sel, price)
+
+            # Detect shading/staleness for soft books
+            if bookmaker not in ['Pinnacle', 'Betfair']:
+                intel = self.market_intel.detect_shading(fixture_id, bookmaker, sel, price)
+                if intel and intel['is_stale']:
+                    print(f"STALE LINE DETECTED: {bookmaker} {fixture_id} {sel} @ {price}")
+
         if not state or not state['current_probs']:
             return
+
+        # Periodically check for sharp signals (e.g., if we see Betfair movement)
+        if bookmaker == 'Betfair':
+            for sel in ['home', 'draw', 'away']:
+                leadership = self.sharp_engine.detect_leadership(fixture_id, sel, 'Betfair', 'Pinnacle')
+                if leadership and leadership['leadership_score'] > 0.7:
+                    print(f"SHARP SIGNAL: Betfair leading Pinnacle for {fixture_id} {sel}")
 
         ev_signals = self.ev_engine.calculate_ev(state['current_probs'], market_odds)
 

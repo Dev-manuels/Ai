@@ -12,6 +12,10 @@ export interface LiveOdds {
   values: {
     selection: string;
     odds: number;
+    depth?: {
+      price: number;
+      volume: number;
+    }[];
   }[];
   timestamp: number;
 }

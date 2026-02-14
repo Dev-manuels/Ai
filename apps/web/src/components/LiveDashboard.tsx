@@ -54,15 +54,27 @@ export const LiveDashboard: React.FC = () => {
         </div>
 
         <div>
-          <h3 className="text-xl font-semibold mb-2">Match Momentum</h3>
-          <div className="space-y-2">
+          <h3 className="text-xl font-semibold mb-2">Match Momentum & Depth</h3>
+          <div className="space-y-4">
             {Object.entries(liveProbs).map(([id, probs]) => (
               <div key={id} className="p-3 bg-slate-800 rounded">
-                <div className="font-bold mb-1">Fixture: {id}</div>
-                <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                  <div className="p-1 bg-slate-700 rounded">H: {(probs.home * 100).toFixed(0)}%</div>
-                  <div className="p-1 bg-slate-700 rounded">D: {(probs.draw * 100).toFixed(0)}%</div>
-                  <div className="p-1 bg-slate-700 rounded">A: {(probs.away * 100).toFixed(0)}%</div>
+                <div className="font-bold mb-2">Fixture: {id}</div>
+                <div className="grid grid-cols-3 gap-2 text-center text-sm mb-3">
+                  <div className="p-1 bg-slate-700 rounded border-b-2 border-blue-500">H: {(probs.home * 100).toFixed(0)}%</div>
+                  <div className="p-1 bg-slate-700 rounded border-b-2 border-gray-500">D: {(probs.draw * 100).toFixed(0)}%</div>
+                  <div className="p-1 bg-slate-700 rounded border-b-2 border-red-500">A: {(probs.away * 100).toFixed(0)}%</div>
+                </div>
+
+                {/* Simulated depth visualization */}
+                <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">Market Depth (Betfair)</div>
+                <div className="space-y-1">
+                  {['home', 'draw', 'away'].map(sel => (
+                    <div key={sel} className="flex gap-1 h-2 bg-slate-900 rounded-full overflow-hidden">
+                      <div className="bg-blue-500/50" style={{ width: '40%' }}></div>
+                      <div className="bg-blue-500/30" style={{ width: '25%' }}></div>
+                      <div className="bg-blue-500/10" style={{ width: '15%' }}></div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}

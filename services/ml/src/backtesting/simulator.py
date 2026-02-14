@@ -9,7 +9,7 @@ class BacktestingSimulator:
         self.commission = commission
         self.results = []
 
-    def run(self, df: pd.DataFrame, predict_fn: Callable) -> pd.DataFrame:
+    def run(self, df: pd.DataFrame, predict_fn: Callable, simulate_liquidity: bool = False) -> pd.DataFrame:
         """
         Runs the simulation. 
         df must have: [date, home_team, away_team, home_odds, draw_odds, away_odds, result]
@@ -17,6 +17,9 @@ class BacktestingSimulator:
         """
         df = df.sort_values('date')
         
+        # simulated_liquidity: {fixture_id: {selection: {price: volume}}}
+        self.sim_liquidity = {}
+
         for index, row in df.iterrows():
             # 1. Get Prediction (Simulation of real-time)
             # Ensure predict_fn only uses data available before row['date']
@@ -25,9 +28,19 @@ class BacktestingSimulator:
             # 2. Execution Logic
             if prediction['recommended_bet'] is not None:
                 bet_type = prediction['recommended_bet'] # 0, 1, or 2
-                odds = [row['home_odds'], row['draw_odds'], row['away_odds']][bet_type]
+                selection_names = ['home', 'draw', 'away']
+                sel_name = selection_names[bet_type]
+
+                raw_odds = [row['home_odds'], row['draw_odds'], row['away_odds']][bet_type]
                 stake = self.bankroll * prediction['suggested_stake']
                 
+                # 2b. Microstructure aware execution
+                if simulate_liquidity:
+                    odds = self._execute_with_liquidity(row['fixture_id'], sel_name, raw_odds, stake)
+                    if odds == 0: continue # No fill
+                else:
+                    odds = raw_odds
+
                 # 3. Settle Bet
                 is_win = (row['result'] == bet_type)
                 profit = 0
@@ -51,6 +64,36 @@ class BacktestingSimulator:
                 })
         
         return pd.DataFrame(self.results)
+
+    def _execute_with_liquidity(self, fixture_id, selection, base_odds, stake):
+        """
+        Simulates liquidity consumption and slippage in backtesting.
+        """
+        if fixture_id not in self.sim_liquidity:
+            # Generate a synthetic order book for this fixture/selection
+            levels = 5
+            self.sim_liquidity[fixture_id] = {
+                'home': {base_odds - i*0.02: 1000 * (0.6**i) for i in range(levels)},
+                'draw': {base_odds - i*0.05: 500 * (0.6**i) for i in range(levels)},
+                'away': {base_odds - i*0.05: 500 * (0.6**i) for i in range(levels)}
+            }
+
+        book = self.sim_liquidity[fixture_id].get(selection, {})
+        remaining_stake = stake
+        total_weighted_odds = 0
+
+        sorted_prices = sorted(book.keys(), reverse=True)
+        for price in sorted_prices:
+            vol = book[price]
+            fill = min(remaining_stake, vol)
+            total_weighted_odds += fill * price
+            book[price] -= fill # Consume
+            remaining_stake -= fill
+            if remaining_stake <= 0: break
+
+        if stake > remaining_stake:
+            return total_weighted_odds / (stake - remaining_stake)
+        return 0
 
     def calculate_metrics(self) -> Dict:
         if not self.results: return {}
