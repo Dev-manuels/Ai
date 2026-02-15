@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/AuthProvider';
 import {
   TrendingUp,
   ShieldCheck,
@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 
 export default function Home() {
-  const { data: session, status } = useSession();
+  const { user, nextAuthUser, loading } = useAuth();
+  const activeUser = user || nextAuthUser;
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-64px)]">
@@ -47,9 +48,9 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            {status === 'loading' ? (
+            {loading ? (
               <div className="w-48 h-12 bg-slate-900 animate-pulse rounded-lg"></div>
-            ) : session ? (
+            ) : activeUser ? (
               <Link
                 href="/dashboard"
                 className="group flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg font-bold transition-all"
