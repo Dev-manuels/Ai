@@ -47,6 +47,14 @@
    npm run dev
    ```
 
+## Dependency Classification
+
+When adding new packages, follow these rules to ensure CI/CD stability:
+
+- **Frontend Build Tools**: Place `tailwindcss`, `postcss`, and `autoprefixer` in `dependencies` (not `devDependencies`) to ensure they are available during Netlify/production builds.
+- **Runtime Dependencies**: All packages required for the application to run (e.g., `next`, `express`, `zod`) must be in `dependencies`.
+- **Development/Test Tools**: Packages only used during development or testing (e.g., `jest`, `eslint`, `prettier`) must be in `devDependencies`.
+
 ## Service Access
 - **Frontend**: http://localhost:3000
 - **API Gateway**: http://localhost:3001
