@@ -44,7 +44,16 @@ _Note: Ensure your `values.yaml` is configured with production-grade database cr
 - **AWS App Runner**: Ideal for a simplified container-to-web service deployment for each component.
 - **ECS (Fargate)**: A serverless container option that removes the need to manage EC2 instances.
 
-### 4. Docker Compose (VPS / Development)
+### 4. Netlify (Static & Dynamic Frontend)
+
+The frontend can be deployed to Netlify for global distribution and automated CI/CD.
+
+- **Build Settings**:
+  - **Build Command**: `npm run build --workspace=@football/web`
+  - **Publish Directory**: `apps/web/.next`
+- **Plugin**: Use the `@netlify/plugin-nextjs` (Next.js Runtime) for full feature support.
+
+### 5. Docker Compose (VPS / Development)
 
 For low-cost production on a single VPS (e.g., DigitalOcean Droplet) or for local development:
 
