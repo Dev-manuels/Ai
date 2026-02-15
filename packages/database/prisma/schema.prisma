@@ -149,6 +149,57 @@ model MatchEvent {
   @@index([fixtureId, timestamp])
 }
 
+model ModelArtifact {
+  id           String   @id @default(uuid())
+  name         String
+  version      String
+  path         String   // S3 path
+  metadata     Json
+  metrics      Json
+  status       String   @default("STAGING") // STAGING, PRODUCTION, SHADOW, RETIRED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  experiments  Experiment[]
+}
+
+model DriftMetric {
+  id           String   @id @default(uuid())
+  modelName    String
+  metricName   String   // e.g., "feature_drift_p_value", "log_loss_calibration"
+  value        Float
+  timestamp    DateTime @default(now())
+  tags         Json?
+
+  @@index([modelName, timestamp])
+}
+
+model Experiment {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  type         String   // A_B, SHADOW, FEATURE_TEST
+  status       String   @default("ACTIVE") // ACTIVE, COMPLETED, ABORTED
+
+  modelArtifactId String
+  modelArtifact   ModelArtifact @relation(fields: [modelArtifactId], references: [id])
+
+  config       Json
+  results      Json?
+  startDate    DateTime @default(now())
+  endDate      DateTime?
+}
+
+model RegimeState {
+  id           String   @id @default(uuid())
+  regime       String   // e.g., "LOW_VOLATILITY", "HIGH_VOLATILITY", "TRENDING"
+  confidence   Float
+  features     Json     // Features that led to this detection
+  timestamp    DateTime @default(now())
+
+  @@index([timestamp])
+}
+
 model InPlayOdds {
   id         String   @id @default(uuid())
   fixtureId  String

@@ -7,6 +7,7 @@ from .execution import LiveEVEngine, ExecutionSimulator
 from .risk import LiveRiskManager, RegimeDetector
 from .sharp_money import SharpMoneyEngine
 from .market_intelligence import MarketIntelligenceEngine
+from .research.experimentation import ExperimentManager
 
 class LiveInferenceService:
     def __init__(self, redis_url: str):
@@ -25,6 +26,7 @@ class LiveInferenceService:
         self.regime_detector = RegimeDetector()
         self.sharp_engine = SharpMoneyEngine()
         self.market_intel = MarketIntelligenceEngine()
+        self.experiment_manager = ExperimentManager()
 
         # Match states cache: fixtureId -> { score, elapsed, events, current_probs }
         self.match_states = {}
@@ -81,6 +83,14 @@ class LiveInferenceService:
         probs = self.live_engine.predict_live_probs('Home', 'Away', state['score'], state['elapsed'])
         state['current_probs'] = probs
         print(f"Updated Probs for {fixture_id}: {probs}")
+
+        # Run shadow experiments
+        self.experiment_manager.run_shadow_inference(fixture_id, {
+            'home_team': 'Home',
+            'away_team': 'Away',
+            'score': state['score'],
+            'elapsed': state['elapsed']
+        })
 
         # Publish to internal live_predictions stream
         self.redis.xadd('live_predictions', {
