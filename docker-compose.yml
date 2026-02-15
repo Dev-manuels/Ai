@@ -22,6 +22,8 @@ services:
     environment:
       DATABASE_URL: "postgresql://user:password@postgres:5432/football_db?schema=public"
       REDIS_URL: "redis://redis:6379"
+      FOOTBALL_PROVIDER: "mock"
+      API_FOOTBALL_KEY: "mock-key"
     ports:
       - "3001:3001"
     depends_on:
@@ -54,6 +56,18 @@ services:
       - "3000:3000"
     depends_on:
       - api
+
+  live-ingestion:
+    build:
+      context: .
+      dockerfile: ./services/live-ingestion/Dockerfile
+    environment:
+      DATABASE_URL: "postgresql://user:password@postgres:5432/football_db?schema=public"
+      REDIS_URL: "redis://redis:6379"
+      FOOTBALL_PROVIDER: "mock"
+    depends_on:
+      - postgres
+      - redis
 
 volumes:
   postgres_data:

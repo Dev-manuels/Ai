@@ -20,7 +20,12 @@ Critical data is cached in Redis to avoid DB bottlenecks:
 - **Odds Buffers**: Windowed storage of recent odds movements to calculate "velocity" features.
 - **Rate Limiting**: Per-user and per-IP limits managed via Redis.
 
-## 4. Live Betting Constraints
+## 4. Live Ingestion Strategies
+The platform supports multiple ingestion strategies depending on the provider:
+- **Streaming**: Preferred for low-latency providers (e.g., Betfair, Sportmonks WebSocket).
+- **Adaptive Polling**: Used for providers without native streaming (e.g., API-Football). The system adjusts polling frequency based on match status and market volatility.
+
+## 5. Live Betting Constraints
 During live match play:
 - **Data Latency**: We ignore odds that are older than 5 seconds.
 - **Match State**: The system automatically halts betting during high-leverage events (e.g., penalties, VAR reviews) as signaled by the data provider.

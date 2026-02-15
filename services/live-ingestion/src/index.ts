@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 import { LiveStreamProducer } from './redis.producer';
 import { LiveEvent, LiveOdds } from './provider.interface';
 import { LiveEventPersistor } from './persistor';
+import { ProviderFactory } from '@football/ingestion';
+import { PollingLiveProvider } from './polling.provider';
 
 dotenv.config();
 
@@ -23,9 +25,19 @@ class LiveIngestionManager {
     // Start persistor in background
     this.persistor.run().catch(console.error);
 
-    // Here we would initialize actual providers like SportmonksWebSocketProvider
-    // For now, we simulate events for the Match State Engine
-    this.startSimulation();
+    const providerType = process.env.FOOTBALL_PROVIDER || 'mock';
+    const provider = ProviderFactory.getProvider(providerType);
+
+    if (providerType === 'mock') {
+        this.startSimulation();
+    } else {
+        // In a real scenario, we would get active fixtures from DB
+        const liveProvider = new PollingLiveProvider(provider, 12345, 'fixture-123', 10000);
+        liveProvider.onEvent(async (e) => await this.producer.publishEvent(e));
+        liveProvider.onOdds(async (o) => await this.producer.publishOdds(o));
+        await liveProvider.connect();
+        console.log(`Started polling live data from ${provider.name}`);
+    }
   }
 
   private startSimulation() {
