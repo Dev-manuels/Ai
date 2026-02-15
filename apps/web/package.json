@@ -29,7 +29,6 @@
     "tailwindcss": "^3.4.16",
     "typescript": "^5.7.2",
     "eslint": "^9.0.0",
-    "eslint-config-next": "^15.1.0",
-    "@netlify/plugin-nextjs": "^5.15.8"
+    "eslint-config-next": "^15.1.0"
   }
 }
