@@ -2,6 +2,10 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 const handler = NextAuth({
+  secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: "jwt",
+  },
   providers: [
     CredentialsProvider({
       name: "Institutional Access",
@@ -13,18 +17,26 @@ const handler = NextAuth({
         const adminToken = process.env.ADMIN_ACCESS_TOKEN;
         
         if (!adminToken) {
-          console.error("ADMIN_ACCESS_TOKEN is not set in environment variables");
+          console.error("CRITICAL: ADMIN_ACCESS_TOKEN is not set in environment variables");
           return null;
         }
 
         // Institutional verification logic
         if (credentials?.email && credentials?.password === adminToken) {
-          return { id: "1", name: "Senior Analyst", email: credentials.email, role: "ADMIN" };
+          return {
+            id: "1",
+            name: "Senior Analyst",
+            email: credentials.email,
+            role: "ADMIN"
+          };
         }
+
+        console.warn(`Unauthorized login attempt for: ${credentials?.email}`);
         return null;
       }
     })
   ],
+  debug: process.env.NODE_ENV === 'development',
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
