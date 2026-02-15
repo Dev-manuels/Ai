@@ -49,8 +49,13 @@ _Note: Ensure your `values.yaml` is configured with production-grade database cr
 The frontend can be deployed to Netlify for global distribution and automated CI/CD.
 
 - **Build Settings**:
-  - **Build Command**: `npm run build --workspace=@football/web`
+  - **Build Command**: `npx turbo build --filter=@football/web`
   - **Publish Directory**: `apps/web/.next`
+- **Environment Variables**:
+  - `CI`: Set to `true` for production builds.
+  - `NODE_ENV`: Set to `production`.
+  - `NODE_VERSION`: `20` or higher.
+- **Dependencies**: Tools required for the CSS pipeline (e.g., `tailwindcss`, `postcss`, `autoprefixer`) must be in the `dependencies` section of `apps/web/package.json` to ensure they are available during the production build on Netlify, as `devDependencies` may be omitted depending on the environment setup.
 - **Plugin**: Use the `@netlify/plugin-nextjs` (Next.js Runtime) for full feature support.
 
 ### 5. Docker Compose (VPS / Development)
@@ -71,6 +76,15 @@ docker-compose up -d
 | `NEXTAUTH_URL`        | Canonical URL of the web application       | Web       |
 | `NEXTAUTH_SECRET`     | Secure random string for session signing   | Web       |
 | `ADMIN_ACCESS_TOKEN`  | Secure token for administrative API access | Web, API  |
+
+## Dependency Classification Rules
+
+To ensure consistent builds across various CI/CD environments (Netlify, Docker, DigitalOcean):
+
+1. **Build-time CSS/UI Tools**: Packages like `tailwindcss`, `postcss`, and `autoprefixer` should be placed in `dependencies` for frontend workspaces. This prevents "module not found" errors when `NODE_ENV=production` is used during the build phase.
+2. **Testing Frameworks**: `jest`, `ts-jest`, `nock`, and other testing-only libraries should remain in `devDependencies`.
+3. **Type Definitions**: `@types/*` packages should generally be in `devDependencies`.
+4. **Runtime Engines**: Core libraries (e.g., `next`, `express`, `prisma/client`) must always be in `dependencies`.
 
 ## Best Practices for Production
 
