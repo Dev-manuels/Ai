@@ -6,11 +6,10 @@ This report documents the configuration and steps taken to deploy the frontend o
 ## Deployment Configuration
 
 ### Netlify Configuration (`netlify.toml`)
-The deployment is configured via `netlify.toml` in the repository root, using a base directory approach for monorepo support.
+The deployment is configured via `netlify.toml` in the repository root.
 
-- **Base Directory**: `apps/web`
-- **Build Command**: `npm run build`
-- **Publish Directory**: `.next` (relative to base)
+- **Build Command**: `npm run build --workspace=@football/web`
+- **Publish Directory**: `apps/web/.next`
 - **Node Runtime**: 20.x
 - **Next.js Plugin**: `@netlify/plugin-nextjs` is enabled for optimal Next.js support.
 
@@ -37,14 +36,7 @@ The following environment variables must be configured in the Netlify UI (Site s
 - **Caching**: Standard Next.js caching headers are applied.
 
 ## Security
-Security headers are implemented in `apps/web/next.config.js` for better compatibility with Next.js on Netlify:
-- `X-Frame-Options: DENY`
-- `X-XSS-Protection: 1; mode=block`
-- `X-Content-Type-Options: nosniff`
-- `Referrer-Policy: strict-origin-when-cross-origin`
-- `Permissions-Policy`: Restricts browser features for enhanced privacy.
-- `Strict-Transport-Security`: Enforces HTTPS.
-- `Content-Security-Policy`: Configured to allow only trusted sources and secure connections.
+Security headers can be implemented in `next.config.js` or `netlify.toml` once the initial deployment is stable.
 
 ## Testing & Validation
 1. **Build Test**: Run `npm run build --workspace=@football/web` locally to ensure no build regressions.

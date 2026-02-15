@@ -51,7 +51,7 @@ The frontend can be deployed to Netlify for global distribution and automated CI
 - **Build Settings**:
   - **Build Command**: `npm run build --workspace=@football/web`
   - **Publish Directory**: `apps/web/.next`
-- **Plugin**: Use the `@netlify/plugin-nextjs` for full feature support (SSR, ISR, etc.).
+- **Plugin**: Use the `@netlify/plugin-nextjs` (Next.js Runtime) for full feature support.
 
 ### 5. Docker Compose (VPS / Development)
 
