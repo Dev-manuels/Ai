@@ -27,6 +27,13 @@ The Helm charts are located in `k8s/helm/football-intelligence`.
      --set redis.auth.password=$REDIS_PASSWORD
    ```
 
+### 3. Netlify (Frontend Only)
+The frontend application can be deployed independently to Netlify for better performance and ease of use.
+- **Base Directory**: Root of the repository.
+- **Build Command**: `npm run build --workspace=@football/web`
+- **Publish Directory**: `apps/web/.next`
+- **Configuration**: See [Netlify Deployment Report](./deployment-report-netlify.md) for detailed configuration.
+
 ## Infrastructure Requirements
 
 ### Database
