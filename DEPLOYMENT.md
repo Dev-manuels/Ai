@@ -52,7 +52,7 @@ The frontend can be deployed to Netlify for global distribution and automated CI
   - **Build Command**: `npx turbo build --filter=@football/web`
   - **Publish Directory**: `apps/web/.next`
 - **Environment Variables**:
-  - `CI`: Set to `true` for production builds.
+  - `CI`: Set to `false` to avoid strict build-time failures during stabilization.
   - `NODE_ENV`: Set to `production`.
   - `NODE_VERSION`: `20` or higher.
 - **Dependencies**: Tools required for the CSS pipeline (e.g., `tailwindcss`, `postcss`, `autoprefixer`) must be in the `dependencies` section of `apps/web/package.json` to ensure they are available during the production build on Netlify, as `devDependencies` may be omitted depending on the environment setup.

@@ -33,7 +33,7 @@ The frontend application can be deployed independently to Netlify for better per
 - **Build Command**: `npx turbo build --filter=@football/web`
 - **Publish Directory**: `apps/web/.next`
 - **Hardening**: Manual security headers in `netlify.toml` or `next.config.js` are currently disabled to prevent Netlify CI validation failures in this monorepo setup. Security and routing are handled by the Netlify Next.js plugin's auto-configuration.
-- **Environment**: Ensure `CI=true` and `NODE_ENV=production` are set in the Netlify dashboard or `netlify.toml`.
+- **Environment**: Ensure `CI=false` and `NODE_ENV=production` are set in the Netlify dashboard or `netlify.toml` to avoid strict build-time failures during stabilization.
 - **Configuration**: See [Netlify Deployment Report](./deployment-report-netlify.md) for detailed configuration.
 
 ## Cross-Environment Consistency

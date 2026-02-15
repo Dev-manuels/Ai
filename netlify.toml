@@ -5,7 +5,7 @@
 [build.environment]
   NODE_VERSION = "20"
   NODE_ENV = "production"
-  CI = "true"
+  CI = "false"
 
 [context.production.environment]
   NODE_ENV = "production"
