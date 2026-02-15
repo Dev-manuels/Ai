@@ -1,6 +1,7 @@
 from .portfolio_optimization import PortfolioOptimizer
 import pandas as pd
 import numpy as np
+from typing import Dict
 
 class AllocationEngine:
     def __init__(self, optimizer: PortfolioOptimizer):
@@ -38,3 +39,19 @@ class AllocationEngine:
         """
         dc_kelly = self.optimizer.drawdown_constrained_kelly(edge, odds, portfolio_mdd, current_dd)
         return dc_kelly * fraction # Apply Kelly fraction (e.g. 0.25)
+
+    def thompson_sampling_allocation(self, strategy_priors: Dict[str, Dict[str, float]]):
+        """
+        Allocates capital between strategies using Thompson Sampling.
+        Samples from each strategy's posterior (Beta distribution) and allocates
+        proportionally to the samples.
+        """
+        samples = {}
+        for strategy_id, prior in strategy_priors.items():
+            samples[strategy_id] = np.random.beta(prior['alpha'], prior['beta'])
+
+        total_sample = sum(samples.values())
+        if total_sample == 0:
+            return {sid: 1.0/len(samples) for sid in samples}
+
+        return {sid: val / total_sample for sid, val in samples.items()}

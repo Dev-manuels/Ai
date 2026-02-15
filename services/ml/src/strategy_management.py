@@ -4,6 +4,30 @@ import numpy as np
 class StrategyManager:
     def __init__(self):
         self.strategy_performance = {}
+        # Prior distributions for strategy confidence (Beta distribution)
+        # alpha: successes, beta: failures
+        self.confidence_priors = {}
+
+    def update_confidence_bayesian(self, strategy_id: str, is_win: bool):
+        """
+        Updates the Beta distribution prior for a strategy based on a win/loss.
+        """
+        if strategy_id not in self.confidence_priors:
+            self.confidence_priors[strategy_id] = {'alpha': 1.0, 'beta': 1.0}
+
+        if is_win:
+            self.confidence_priors[strategy_id]['alpha'] += 1.0
+        else:
+            self.confidence_priors[strategy_id]['beta'] += 1.0
+
+        return self.get_confidence_score(strategy_id)
+
+    def get_confidence_score(self, strategy_id: str) -> float:
+        """
+        Returns the expected value of the Beta distribution (mean).
+        """
+        prior = self.confidence_priors.get(strategy_id, {'alpha': 1.0, 'beta': 1.0})
+        return prior['alpha'] / (prior['alpha'] + prior['beta'])
 
     def calculate_attribution(self, portfolio_returns: pd.Series, strategy_returns: pd.DataFrame):
         """

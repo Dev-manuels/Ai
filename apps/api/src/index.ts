@@ -35,6 +35,44 @@ const apiLimiter = rateLimit({
 
 app.use('/api/', apiLimiter);
 
+app.get('/api/research/models', apiKeyMiddleware, async (req, res) => {
+  try {
+    const models = await prisma.modelArtifact.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(models);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch models' });
+  }
+});
+
+app.post('/api/research/models/:id/approve', apiKeyMiddleware, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const model = await prisma.modelArtifact.update({
+      where: { id },
+      data: { status: 'PRODUCTION' }
+    });
+    res.json(model);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to approve model' });
+  }
+});
+
+app.get('/api/research/metrics', apiKeyMiddleware, async (req, res) => {
+  const { modelName } = req.query;
+  try {
+    const metrics = await prisma.driftMetric.findMany({
+      where: modelName ? { modelName: String(modelName) } : {},
+      orderBy: { timestamp: 'desc' },
+      take: 100
+    });
+    res.json(metrics);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch metrics' });
+  }
+});
+
 app.get('/api/predictions', apiKeyMiddleware, async (req, res) => {
   try {
     const cached = await cacheService.get('all_predictions');
