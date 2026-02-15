@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { signOut as nextAuthSignOut } from 'next-auth/react';
+import { useAuth } from './AuthProvider';
 import {
   Menu,
   X,
@@ -27,10 +28,12 @@ function cn(...inputs: ClassValue[]) {
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { data: session, status } = useSession();
+  const { user, nextAuthUser, isLegacy, loading, signOut: supabaseSignOut } = useAuth();
   const pathname = usePathname();
 
-  const navItems = session ? [
+  const activeUser = user || nextAuthUser;
+
+  const navItems = activeUser ? [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Research', href: '/dashboard/research', icon: Search },
     { label: 'Portfolio', href: '/dashboard/portfolio', icon: Briefcase },
@@ -42,8 +45,13 @@ export const Navbar = () => {
     { label: 'About', href: '/#about', icon: Shield },
   ];
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/' });
+  const handleSignOut = async () => {
+    if (isLegacy) {
+      await nextAuthSignOut({ callbackUrl: '/' });
+    } else {
+      await supabaseSignOut();
+      window.location.href = '/';
+    }
   };
 
   return (
@@ -79,12 +87,12 @@ export const Navbar = () => {
           </div>
           <div className="hidden md:block">
             <div className="ml-4 flex items-center md:ml-6">
-              {status === 'loading' ? (
+              {loading ? (
                 <div className="w-20 h-8 bg-slate-900 animate-pulse rounded-md"></div>
-              ) : session ? (
+              ) : activeUser ? (
                 <div className="flex items-center gap-4">
                   <span className="text-xs text-slate-500 font-mono hidden lg:block">
-                    {session.user?.email}
+                    {activeUser.email}
                   </span>
                   <button
                     onClick={handleSignOut}
@@ -100,7 +108,7 @@ export const Navbar = () => {
                   className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-all"
                 >
                   <LogIn size={16} />
-                  Institutional Login
+                  Login
                 </Link>
               )}
             </div>
@@ -136,7 +144,7 @@ export const Navbar = () => {
                 {item.label}
               </Link>
             ))}
-            {session ? (
+            {activeUser ? (
               <button
                 onClick={() => {
                   handleSignOut();
