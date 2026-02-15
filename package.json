@@ -12,7 +12,6 @@
     "lint": "turbo run lint"
   },
   "devDependencies": {
-    "@netlify/plugin-nextjs": "^5.15.8",
     "prettier": "^3.3.0",
     "turbo": "^2.1.0"
   },
