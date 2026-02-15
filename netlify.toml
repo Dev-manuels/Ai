@@ -4,12 +4,15 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  CI = "false"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+  [plugins.inputs]
+    nextConfigDir = "apps/web"
 
 [context.production.environment]
   NODE_ENV = "production"
 
 [context.deploy-preview.environment]
-  NODE_ENV = "development"
+  NODE_ENV = "production"
