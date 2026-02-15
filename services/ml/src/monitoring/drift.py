@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy import stats
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import json
 from ..infrastructure.database import SessionLocal
 from sqlalchemy import text
@@ -72,3 +72,40 @@ class DriftMonitor:
                 results[feature] = p_value
                 self.log_drift_metric(f"feature_drift_ks_{feature}", p_value)
         return results
+
+    def calculate_importance_stability(self, importance_history: List[Dict[str, float]]) -> Dict[str, float]:
+        """
+        Calculates the stability (Coefficient of Variation) of feature importance over time.
+        Lower values mean more stable signals.
+        """
+        df = pd.DataFrame(importance_history)
+        stability = df.std() / (df.mean() + 1e-6)
+        return stability.to_dict()
+
+    def detect_signal_decay(self, feature_name: str, performance_over_time: pd.Series) -> float:
+        """
+        Estimates the half-life of a signal's predictive power.
+        """
+        if len(performance_over_time) < 10:
+            return 0.0 # Not enough data
+
+        # Simplified: calculate trend of rolling correlation or accuracy contribution
+        x = np.arange(len(performance_over_time))
+        y = performance_over_time.values
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+
+        return float(slope) # Negative slope indicates decay
+
+    def apply_automated_deweighting(self, current_weights: Dict[str, float], stability_scores: Dict[str, float]) -> Dict[str, float]:
+        """
+        Automatically de-weights signals that fall below stability thresholds.
+        """
+        new_weights = current_weights.copy()
+        for feature, stability in stability_scores.items():
+            if stability > 0.5: # Threshold for "unstable"
+                # Penalize weight proportionally to instability
+                penalty = min(0.5, (stability - 0.5))
+                new_weights[feature] *= (1 - penalty)
+                self.log_drift_metric(f"signal_deweighting_{feature}", penalty, {"reason": "instability"})
+
+        return new_weights

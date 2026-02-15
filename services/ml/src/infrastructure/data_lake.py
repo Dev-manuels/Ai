@@ -1,48 +1,66 @@
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 import os
 from datetime import datetime
-from .database import engine
-from sqlalchemy import text
-import logging
+from typing import Optional, List
 
-logger = logging.getLogger(__name__)
-
-class DataLakeExporter:
-    def __init__(self, base_path: str = "./data_lake"):
+class DataLake:
+    """
+    Handles Parquet-based historical storage for longitudinal datasets.
+    Provides versioning and partitioned access.
+    """
+    def __init__(self, base_path: str = "/data/lake"):
         self.base_path = base_path
-        os.makedirs(base_path, exist_ok=True)
+        if not os.path.exists(self.base_path):
+            try:
+                os.makedirs(self.base_path)
+            except:
+                # Fallback for sandbox environment
+                self.base_path = "./data_lake"
+                if not os.path.exists(self.base_path):
+                    os.makedirs(self.base_path)
 
-    def export_table(self, table_name: str, date_column: str = "createdAt", start_date: str = None):
+    def save_features(self, df: pd.DataFrame, dataset_name: str, version: str):
         """
-        Exports a database table to Parquet, partitioned by year/month.
+        Saves a feature dataset as a versioned Parquet file.
         """
-        query_str = f'SELECT * FROM "{table_name}"'
-        if start_date:
-            query_str += f" WHERE \"{date_column}\" >= :start_date"
+        path = os.path.join(self.base_path, dataset_name, f"version={version}")
+        if not os.path.exists(path):
+            os.makedirs(path)
 
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filepath = os.path.join(path, f"data_{timestamp}.parquet")
+
+        table = pa.Table.from_pandas(df)
+        pq.write_table(table, filepath)
+        return filepath
+
+    def load_longitudinal_data(self, dataset_name: str, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None) -> pd.DataFrame:
+        """
+        Loads historical data for a specific dataset across multiple versions if needed.
+        """
+        path = os.path.join(self.base_path, dataset_name)
+        if not os.path.exists(path):
+            return pd.DataFrame()
+
+        # In a real implementation, we would filter by partitions/versions
+        # For now, we read the entire dataset
         try:
-            df = pd.read_sql(text(query_str), engine.connect(), params={"start_date": start_date} if start_date else None)
-            if df.empty:
-                logger.info(f"No new data to export for {table_name}")
-                return
-
-            df[date_column] = pd.to_datetime(df[date_column])
-            df['year'] = df[date_column].dt.year
-            df['month'] = df[date_column].dt.month
-
-            partition_path = os.path.join(self.base_path, table_name)
-            df.to_parquet(partition_path, partition_cols=['year', 'month'], index=False)
-
-            logger.info(f"Successfully exported {len(df)} rows from {table_name} to {partition_path}")
+            return pq.read_table(path).to_pandas()
         except Exception as e:
-            logger.error(f"Failed to export {table_name}: {e}")
+            print(f"Error loading longitudinal data: {e}")
+            return pd.DataFrame()
 
-    def sync_all(self):
-        tables = ["Prediction", "Bet", "Fixture", "MatchEvent", "InPlayOdds", "DriftMetric"]
-        for table in tables:
-            # For demo, we export all. In production, this would be incremental.
-            self.export_table(table)
+    def create_snapshot(self, df: pd.DataFrame, snapshot_type: str):
+        """
+        Creates a time-stamped snapshot of the current state.
+        """
+        return self.save_features(df, "snapshots", datetime.now().strftime("%Y-%m-%d"))
 
-if __name__ == "__main__":
-    exporter = DataLakeExporter()
-    exporter.sync_all()
+    def track_lineage(self, source_dataset: str, target_dataset: str, transformation_type: str):
+        """
+        Tracks how data flows between different datasets.
+        """
+        # Placeholder for metadata logging (e.g., to PostgreSQL)
+        pass
