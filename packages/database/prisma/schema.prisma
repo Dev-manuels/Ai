@@ -149,6 +149,19 @@ model MatchEvent {
   @@index([fixtureId, timestamp])
 }
 
+model ProviderMapping {
+  id           String   @id @default(uuid())
+  internalId   String
+  externalId   String
+  providerName String   // e.g., "sportmonks", "api-football"
+  entityType   String   // e.g., "LEAGUE", "TEAM", "FIXTURE", "PLAYER"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([providerName, externalId, entityType])
+  @@index([internalId, entityType])
+}
+
 model ModelArtifact {
   id           String   @id @default(uuid())
   name         String

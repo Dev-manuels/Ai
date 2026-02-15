@@ -4,7 +4,11 @@
 The platform processes millions of data points daily from multiple providers. Integrity and traceability are our highest priorities.
 
 ## Ingestion Engine
-- **Providers**: Supports API-Football, Sportmonks, and manual odds ingestion via an adapter pattern.
+- **Providers**: Supports API-Football (Primary), Sportmonks (Legacy), and Mock environments via a unified `@football/ingestion` package.
+- **Architecture**:
+    - **Unified Interface**: All providers implement the `IngestionProvider` interface.
+    - **Normalized Models**: Data is normalized into internal domain models before reaching services.
+    - **Provider Mapping**: A dedicated `ProviderMapping` table bridges external IDs to internal UUIDs, ensuring provider-agnostic data persistence.
 - **Frequency**:
     - **Fixtures**: Sync every 6 hours.
     - **Odds**: Real-time streaming for liquid markets; 1-minute polling for others.
