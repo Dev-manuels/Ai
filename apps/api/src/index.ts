@@ -35,6 +35,169 @@ const apiLimiter = rateLimit({
 
 app.use('/api/', apiLimiter);
 
+app.get('/api/fixtures', async (req, res) => {
+  const { date, leagueId } = req.query;
+  try {
+    const targetDate = date ? new Date(String(date)) : new Date();
+    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+    const fixtures = await prisma.fixture.findMany({
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        },
+        ...(leagueId ? { leagueId: String(leagueId) } : {})
+      },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+        league: true,
+        predictions: {
+          take: 1,
+          orderBy: { createdAt: 'desc' }
+        }
+      },
+      orderBy: { date: 'asc' }
+    });
+    res.json(fixtures);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch fixtures' });
+  }
+});
+
+app.get('/api/leagues', async (req, res) => {
+  try {
+    const leagues = await prisma.league.findMany({
+      orderBy: { name: 'asc' }
+    });
+    res.json(leagues);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch leagues' });
+  }
+});
+
+app.post('/api/fixtures/:id/save', async (req, res) => {
+  const { id } = req.params;
+  const userId = req.headers['x-user-id'] as string;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const saved = await prisma.savedFixture.create({
+      data: { userId, fixtureId: id }
+    });
+    res.json(saved);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to save fixture' });
+  }
+});
+
+app.delete('/api/fixtures/:id/save', async (req, res) => {
+  const { id } = req.params;
+  const userId = req.headers['x-user-id'] as string;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    await prisma.savedFixture.delete({
+      where: { userId_fixtureId: { userId, fixtureId: id } }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to unsave fixture' });
+  }
+});
+
+app.post('/api/predictions/:id/follow', async (req, res) => {
+  const { id } = req.params;
+  const userId = req.headers['x-user-id'] as string;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const followed = await prisma.followedPrediction.create({
+      data: { userId, predictionId: id }
+    });
+    res.json(followed);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to follow prediction' });
+  }
+});
+
+app.delete('/api/predictions/:id/follow', async (req, res) => {
+  const { id } = req.params;
+  const userId = req.headers['x-user-id'] as string;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    await prisma.followedPrediction.delete({
+      where: { userId_predictionId: { userId, predictionId: id } }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to unfollow prediction' });
+  }
+});
+
+app.get('/api/performance', async (req, res) => {
+  try {
+    const finishedFixtures = await prisma.fixture.findMany({
+      where: {
+        status: 'FT',
+        predictions: {
+          some: { isCorrect: null }
+        }
+      },
+      include: {
+        predictions: true,
+        homeTeam: true,
+        awayTeam: true
+      }
+    });
+
+    for (const fixture of finishedFixtures) {
+      for (const prediction of fixture.predictions) {
+        if (prediction.isCorrect !== null) continue;
+
+        const homeScore = fixture.homeScore ?? 0;
+        const awayScore = fixture.awayScore ?? 0;
+        const actualOutcome = homeScore > awayScore ? 'HOME' : homeScore < awayScore ? 'AWAY' : 'DRAW';
+
+        const bet = prediction.recommendedBet.toLowerCase();
+        let isCorrect = false;
+        if (actualOutcome === 'HOME' && (bet.includes('home') || bet.includes(fixture.homeTeam.name.toLowerCase()))) isCorrect = true;
+        else if (actualOutcome === 'AWAY' && (bet.includes('away') || bet.includes(fixture.awayTeam.name.toLowerCase()))) isCorrect = true;
+        else if (actualOutcome === 'DRAW' && bet.includes('draw')) isCorrect = true;
+
+        await prisma.prediction.update({
+          where: { id: prediction.id },
+          data: { isCorrect }
+        });
+      }
+    }
+
+    const allEvaluated = await prisma.prediction.findMany({
+      where: { isCorrect: { not: null } },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const wins = allEvaluated.filter(p => p.isCorrect).length;
+    const total = allEvaluated.length;
+    const winRate = total > 0 ? wins / total : 0;
+    const roi = total > 0 ? (wins * 1.95 - total) / total : 0; // Assuming 1.95 avg odds
+
+    res.json({
+      winRate,
+      roi,
+      totalPredictions: total,
+      wins,
+      losses: total - wins,
+      history: allEvaluated.slice(0, 20)
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch performance' });
+  }
+});
+
 app.get('/api/research/models', apiKeyMiddleware, async (req, res) => {
   try {
     const models = await prisma.modelArtifact.findMany({

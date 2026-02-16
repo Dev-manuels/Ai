@@ -13,7 +13,31 @@ model User {
   name       String?
   role       String      @default("USER")
   portfolios Portfolio[]
-  createdAt  DateTime    @default(now())
+  savedFixtures      SavedFixture[]
+  followedPredictions FollowedPrediction[]
+  createdAt          DateTime    @default(now())
+}
+
+model SavedFixture {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  fixtureId String
+  fixture   Fixture  @relation(fields: [fixtureId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, fixtureId])
+}
+
+model FollowedPrediction {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  predictionId String
+  prediction   Prediction @relation(fields: [predictionId], references: [id])
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, predictionId])
 }
 
 model League {
@@ -46,6 +70,7 @@ model Fixture {
   awayScore   Int?
   status      String
   predictions Prediction[]
+  savedBy     SavedFixture[]
 }
 
 model Portfolio {
@@ -111,10 +136,12 @@ model Prediction {
   ev             Float
   confidence     Float
   recommendedBet String
+  isCorrect      Boolean?
   
   // Auditing & Traceability
   featureSnapshot Json?   // The "Traceability" requirement
   
+  followedBy     FollowedPrediction[]
   bets           Bet[]
   createdAt      DateTime @default(now())
 }
