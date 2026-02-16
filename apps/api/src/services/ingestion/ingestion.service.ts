@@ -1,8 +1,13 @@
 import prisma from '@football/database';
 import { IngestionProvider } from '@football/ingestion';
+import { PredictionService } from '../ml/prediction.service';
 
 export class IngestionService {
-  constructor(private provider: IngestionProvider) {}
+  private predictionService: PredictionService;
+
+  constructor(private provider: IngestionProvider) {
+    this.predictionService = new PredictionService();
+  }
 
   private async getOrCreateMapping(externalId: number | string, entityType: string, createInternal: () => Promise<string>): Promise<string> {
     const mapping = await prisma.providerMapping.findUnique({
@@ -95,7 +100,7 @@ export class IngestionService {
         throw new Error(`Away team ${f.awayTeamId} not found. Sync teams first.`);
       });
 
-      await this.getOrCreateMapping(f.externalId, 'FIXTURE', async () => {
+      const fixtureId = await this.getOrCreateMapping(f.externalId, 'FIXTURE', async () => {
         const created = await prisma.fixture.create({
           data: {
             externalId: typeof f.externalId === 'number' ? f.externalId : 0,
@@ -109,6 +114,11 @@ export class IngestionService {
           }
         });
         return created.id;
+      });
+
+      // Trigger prediction for the fixture (asynchronously)
+      this.predictionService.generatePrediction(fixtureId).catch(err => {
+        console.error(`Post-sync prediction failed for ${fixtureId}:`, err);
       });
     }
   }

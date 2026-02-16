@@ -8,6 +8,9 @@ import { apiKeyMiddleware } from './middleware/api-key.middleware';
 import { Server } from 'socket.io';
 import { createServer } from 'http';
 import { LiveBroadcastService } from './services/messaging/live-broadcast.service';
+import { SettlementService } from './services/settlement/settlement.service';
+import { IngestionService } from './services/ingestion/ingestion.service';
+import { ProviderFactory } from '@football/ingestion';
 
 const app = express();
 const httpServer = createServer(app);
@@ -138,42 +141,90 @@ app.delete('/api/predictions/:id/follow', async (req, res) => {
   }
 });
 
-app.get('/api/performance', async (req, res) => {
+app.post('/api/bets', async (req, res) => {
+  const { predictionId, portfolioId, stake, odds, betType } = req.body;
+  const userId = req.headers['x-user-id'] as string;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
   try {
-    const finishedFixtures = await prisma.fixture.findMany({
-      where: {
-        status: 'FT',
-        predictions: {
-          some: { isCorrect: null }
-        }
-      },
+    const existing = await prisma.bet.findFirst({
+      where: { predictionId, portfolioId }
+    });
+    if (existing) {
+      return res.status(400).json({ error: 'Bet already placed for this prediction' });
+    }
+
+    const bet = await prisma.bet.create({
+      data: {
+        predictionId,
+        portfolioId,
+        stake: parseFloat(stake),
+        odds: parseFloat(odds),
+        betType,
+        status: 'PENDING'
+      }
+    });
+    res.json(bet);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to place bet' });
+  }
+});
+
+app.get('/api/portfolios', async (req, res) => {
+  const userId = req.headers['x-user-id'] as string;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    let portfolios = await prisma.portfolio.findMany({
+      where: { userId },
       include: {
-        predictions: true,
-        homeTeam: true,
-        awayTeam: true
+        bets: {
+          include: {
+            prediction: {
+              include: {
+                fixture: {
+                  include: {
+                    homeTeam: true,
+                    awayTeam: true
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     });
 
-    for (const fixture of finishedFixtures) {
-      for (const prediction of fixture.predictions) {
-        if (prediction.isCorrect !== null) continue;
-
-        const homeScore = fixture.homeScore ?? 0;
-        const awayScore = fixture.awayScore ?? 0;
-        const actualOutcome = homeScore > awayScore ? 'HOME' : homeScore < awayScore ? 'AWAY' : 'DRAW';
-
-        const bet = prediction.recommendedBet.toLowerCase();
-        let isCorrect = false;
-        if (actualOutcome === 'HOME' && (bet.includes('home') || bet.includes(fixture.homeTeam.name.toLowerCase()))) isCorrect = true;
-        else if (actualOutcome === 'AWAY' && (bet.includes('away') || bet.includes(fixture.awayTeam.name.toLowerCase()))) isCorrect = true;
-        else if (actualOutcome === 'DRAW' && bet.includes('draw')) isCorrect = true;
-
-        await prisma.prediction.update({
-          where: { id: prediction.id },
-          data: { isCorrect }
-        });
-      }
+    if (portfolios.length === 0) {
+      const defaultPortfolio = await prisma.portfolio.create({
+        data: {
+          name: 'Main Portfolio',
+          userId,
+          riskValue: 0.25,
+          bankroll: 10000,
+          initialBankroll: 10000
+        },
+        include: {
+          bets: {
+            include: {
+              prediction: true
+            }
+          }
+        }
+      });
+      portfolios = [defaultPortfolio];
     }
+
+    res.json(portfolios);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch portfolios' });
+  }
+});
+
+app.get('/api/performance', async (req, res) => {
+  try {
+    const settlementService = new SettlementService();
+    await settlementService.settleAll();
 
     const allEvaluated = await prisma.prediction.findMany({
       where: { isCorrect: { not: null } },
@@ -183,7 +234,7 @@ app.get('/api/performance', async (req, res) => {
     const wins = allEvaluated.filter(p => p.isCorrect).length;
     const total = allEvaluated.length;
     const winRate = total > 0 ? wins / total : 0;
-    const roi = total > 0 ? (wins * 1.95 - total) / total : 0; // Assuming 1.95 avg odds
+    const roi = total > 0 ? (wins * 1.95 - total) / total : 0;
 
     res.json({
       winRate,
@@ -266,6 +317,19 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.post('/api/admin/sync', apiKeyMiddleware, async (req, res) => {
+  try {
+    const provider = ProviderFactory.getProvider(process.env.FOOTBALL_PROVIDER || 'mock');
+    const ingestionService = new IngestionService(provider);
+    await ingestionService.syncLeagues();
+    await ingestionService.syncTeams(1, 2024);
+    await ingestionService.syncFixtures(1, 2024);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Sync failed' });
+  }
+});
+
 app.get('/metrics', async (req, res) => {
   res.set('Content-Type', register.contentType);
   res.end(await register.metrics());
@@ -289,3 +353,8 @@ const broadcastService = new LiveBroadcastService(process.env.REDIS_URL || 'redi
 broadcastService.connect().then(() => {
   broadcastService.run();
 });
+
+const settlementService = new SettlementService();
+setInterval(() => {
+  settlementService.settleAll();
+}, 30 * 60 * 1000);
