@@ -34,10 +34,10 @@ export const Navbar = () => {
   const activeUser = user || nextAuthUser;
 
   const navItems = activeUser ? [
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Intelligence', href: '/dashboard/matches', icon: LayoutDashboard },
+    { label: 'Performance', href: '/dashboard/performance', icon: BarChart2 },
     { label: 'Research', href: '/dashboard/research', icon: Search },
     { label: 'Portfolio', href: '/dashboard/portfolio', icon: Briefcase },
-    { label: 'Strategies', href: '/dashboard/strategies', icon: BarChart2 },
     { label: 'Settings', href: '/dashboard/settings', icon: Settings },
   ] : [
     { label: 'Home', href: '/', icon: Home },

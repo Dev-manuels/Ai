@@ -1,6 +1,7 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { PredictionCard } from '../../components/PredictionCard';
 import { PerformanceChart } from '../../components/PerformanceChart';
 import { LiveDashboard } from '../../components/LiveDashboard';
@@ -8,9 +9,13 @@ import { StrategyPerformance } from '../../components/StrategyPerformance';
 import { TrendingUp, Activity, ShieldAlert, BarChart3, PieChart } from 'lucide-react';
 
 export default function Dashboard() {
+  const router = useRouter();
   const [predictions, setPredictions] = React.useState<any[]>([]);
 
   React.useEffect(() => {
+    // Redirect to matches for the primary landing experience
+    router.push('/dashboard/matches');
+
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     fetch(`${apiUrl}/api/predictions`)
       .then(res => res.json())
