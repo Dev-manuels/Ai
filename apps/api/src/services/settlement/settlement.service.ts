@@ -43,16 +43,12 @@ export class SettlementService {
 
     console.log(`[Settlement:${runId}] Processing Fixture ${fixture.id} (${fixture.homeTeam.name} vs ${fixture.awayTeam.name}) - Status: ${fixture.status}`);
 
-    const homeScore = fixture.homeScore ?? 0;
-    const awayScore = fixture.awayScore ?? 0;
-    const actualOutcome = homeScore > awayScore ? 'HOME' : homeScore < awayScore ? 'AWAY' : 'DRAW';
-
     for (const prediction of fixture.predictions) {
       // 1. Settle Prediction Accuracy
       if (prediction.isCorrect === null) {
         let isCorrect = null;
         if (isFinished) {
-          isCorrect = this.checkOutcome(prediction.recommendedBet, actualOutcome, fixture);
+          isCorrect = this.checkOutcome(prediction.marketType, prediction.selection, fixture);
         }
 
         if (isCorrect !== null) {
@@ -60,7 +56,7 @@ export class SettlementService {
             where: { id: prediction.id },
             data: { isCorrect }
           });
-          console.log(`[Settlement:${runId}] Prediction ${prediction.id} settled as ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
+          console.log(`[Settlement:${runId}] Prediction ${prediction.id} (${prediction.marketType}:${prediction.selection}) settled as ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
         }
       }
 
@@ -72,7 +68,7 @@ export class SettlementService {
         let profit = 0;
 
         if (isFinished) {
-          const betIsCorrect = this.checkOutcome(bet.betType, actualOutcome, fixture);
+          const betIsCorrect = this.checkOutcome(prediction.marketType, prediction.selection, fixture);
           status = betIsCorrect ? 'WON' : 'LOST';
           profit = betIsCorrect ? (bet.stake * bet.odds) - bet.stake : -bet.stake;
         } else if (isVoid) {
@@ -103,11 +99,44 @@ export class SettlementService {
     }
   }
 
-  private checkOutcome(betType: string, actualOutcome: string, fixture: any): boolean {
-    const bet = betType.toLowerCase();
-    if (actualOutcome === 'HOME' && (bet.includes('home') || bet.includes(fixture.homeTeam.name.toLowerCase()))) return true;
-    if (actualOutcome === 'AWAY' && (bet.includes('away') || bet.includes(fixture.awayTeam.name.toLowerCase()))) return true;
-    if (actualOutcome === 'DRAW' && bet.includes('draw')) return true;
-    return false;
+  private checkOutcome(marketType: string, selection: string, fixture: any): boolean {
+    const homeScore = fixture.homeScore ?? 0;
+    const awayScore = fixture.awayScore ?? 0;
+
+    switch (marketType) {
+      case '1X2':
+        const actual1X2 = homeScore > awayScore ? 'HOME' : homeScore < awayScore ? 'AWAY' : 'DRAW';
+        return selection === actual1X2;
+
+      case 'OVER_UNDER_2_5':
+        const totalGoals = homeScore + awayScore;
+        if (selection === 'OVER') return totalGoals > 2.5;
+        if (selection === 'UNDER') return totalGoals < 2.5;
+        return false;
+
+      case 'BTTS':
+        const btts = homeScore > 0 && awayScore > 0;
+        if (selection === 'YES') return btts;
+        if (selection === 'NO') return !btts;
+        return false;
+
+      case 'HOME_OVER_UNDER_1_5':
+        if (selection === 'OVER') return homeScore > 1.5;
+        if (selection === 'UNDER') return homeScore < 1.5;
+        return false;
+
+      case 'AWAY_OVER_UNDER_1_5':
+        if (selection === 'OVER') return awayScore > 1.5;
+        if (selection === 'UNDER') return awayScore < 1.5;
+        return false;
+
+      default:
+        // Handle old logic if marketType is missing (though it shouldn't be with new data)
+        if (!marketType && selection) {
+          const actual1X2 = homeScore > awayScore ? 'HOME' : homeScore < awayScore ? 'AWAY' : 'DRAW';
+          return selection.toUpperCase() === actual1X2;
+        }
+        return false;
+    }
   }
 }
