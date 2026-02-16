@@ -117,7 +117,7 @@ export class IngestionService {
       });
 
       // Trigger prediction for the fixture (asynchronously)
-      this.predictionService.generatePrediction(fixtureId).catch(err => {
+      this.predictionService.generatePrediction(fixtureId, this.provider).catch(err => {
         console.error(`Post-sync prediction failed for ${fixtureId}:`, err);
       });
     }

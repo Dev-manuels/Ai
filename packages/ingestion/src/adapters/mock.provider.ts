@@ -35,12 +35,52 @@ export class MockProvider implements IngestionProvider {
       {
         fixtureId,
         bookmaker: 'MockBookie',
-        market: '1X2',
+        market: 'Match Winner',
         timestamp: Date.now(),
         values: [
           { selection: 'Home', odds: 2.0 },
           { selection: 'Draw', odds: 3.5 },
           { selection: 'Away', odds: 4.0 }
+        ]
+      },
+      {
+        fixtureId,
+        bookmaker: 'MockBookie',
+        market: 'Goals Over/Under',
+        timestamp: Date.now(),
+        values: [
+          { selection: 'Over 2.5', odds: 1.9 },
+          { selection: 'Under 2.5', odds: 1.9 }
+        ]
+      },
+      {
+        fixtureId,
+        bookmaker: 'MockBookie',
+        market: 'Both Teams Score',
+        timestamp: Date.now(),
+        values: [
+          { selection: 'Yes', odds: 1.8 },
+          { selection: 'No', odds: 2.0 }
+        ]
+      },
+      {
+        fixtureId,
+        bookmaker: 'MockBookie',
+        market: 'Home Team Over/Under',
+        timestamp: Date.now(),
+        values: [
+          { selection: 'Over 1.5', odds: 1.7 },
+          { selection: 'Under 1.5', odds: 2.1 }
+        ]
+      },
+      {
+        fixtureId,
+        bookmaker: 'MockBookie',
+        market: 'Away Team Over/Under',
+        timestamp: Date.now(),
+        values: [
+          { selection: 'Over 1.5', odds: 2.5 },
+          { selection: 'Under 1.5', odds: 1.5 }
         ]
       }
     ];
