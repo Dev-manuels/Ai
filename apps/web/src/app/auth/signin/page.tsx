@@ -20,6 +20,7 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [authMode, setAuthMode] = useState<'supabase' | 'legacy'>('supabase');
   const [showOtpInput, setShowOtpInput] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const handleLegacySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +65,7 @@ export default function SignIn() {
       if (error) {
         setError(error.message);
       } else {
-        setMessage('Check your email for the magic link or entry code.');
+        setMessage('We\'ve sent a secure access link to your email.');
         setShowOtpInput(true);
       }
     } catch (err) {
@@ -226,15 +227,32 @@ export default function SignIn() {
                     )}
                   </button>
                   <p className="text-[10px] text-center text-slate-500 uppercase tracking-widest">
-                    Magic link will be sent to your inbox
+                    A secure link will be sent to your inbox
                   </p>
                 </form>
               ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-6">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 px-1">
-                      Verification Code
-                    </label>
+                <div className="space-y-8">
+                  <div className="text-center space-y-2">
+                    <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Mail className="text-emerald-400" size={32} />
+                    </div>
+                    <h3 className="text-white font-bold">Check your email</h3>
+                    <p className="text-slate-400 text-sm">
+                      We've sent a magic link to <span className="text-indigo-400">{email}</span>.
+                      Click the link to sign in instantly.
+                    </p>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-slate-800"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-slate-900 px-2 text-slate-500 tracking-widest">Or enter code manually</span>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleVerifyOtp} className="space-y-4">
                     <div className="relative">
                       <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                       <input
@@ -247,28 +265,47 @@ export default function SignIn() {
                         maxLength={6}
                       />
                     </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-600/20"
+                    >
+                      {loading ? (
+                        <Loader2 size={20} className="animate-spin" />
+                      ) : (
+                        'Verify & Access'
+                      )}
+                    </button>
+                  </form>
+
+                  <div className="pt-4 space-y-3">
+                    <button
+                      type="button"
+                      disabled={loading || isResending}
+                      onClick={async () => {
+                        setIsResending(true);
+                        await handleSupabaseSignIn({ preventDefault: () => {} } as any);
+                        setIsResending(false);
+                      }}
+                      className="w-full text-indigo-400 hover:text-indigo-300 text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-50"
+                    >
+                      {isResending ? 'Sending...' : 'Didn\'t receive an email? Resend link'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOtpInput(false);
+                        setError('');
+                        setMessage('');
+                      }}
+                      className="w-full text-slate-500 hover:text-slate-300 text-xs font-bold uppercase tracking-widest transition-all"
+                    >
+                      Back to email entry
+                    </button>
                   </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-600/20"
-                  >
-                    {loading ? (
-                      <Loader2 size={20} className="animate-spin" />
-                    ) : (
-                      'Verify & Access'
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowOtpInput(false)}
-                    className="w-full text-slate-500 hover:text-slate-300 text-xs font-bold uppercase tracking-widest transition-all"
-                  >
-                    Back to email entry
-                  </button>
-                </form>
+                </div>
               )}
             </div>
           )}
