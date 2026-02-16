@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import {
   TrendingUp,
@@ -11,15 +12,77 @@ import {
   BarChart4,
   Globe,
   ArrowRight,
-  ChevronRight
+  ChevronRight,
+  AlertCircle,
+  X
 } from 'lucide-react';
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [authError, setAuthError] = useState<{
+    message: string;
+    code: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    // Check both query params and hash fragment for errors
+    const error = searchParams.get('error') ||
+                  (typeof window !== 'undefined' && new URLSearchParams(window.location.hash.substring(1)).get('error'));
+
+    if (error) {
+      const description = searchParams.get('error_description') ||
+                         (typeof window !== 'undefined' && new URLSearchParams(window.location.hash.substring(1)).get('error_description'));
+      const code = searchParams.get('error_code') ||
+                  (typeof window !== 'undefined' && new URLSearchParams(window.location.hash.substring(1)).get('error_code'));
+
+      setAuthError({
+        message: description || 'Authentication failed. Please try again.',
+        code: code || error
+      });
+
+      // Log the error for monitoring
+      console.error('[Auth Monitoring] Authentication failure detected:', {
+        error,
+        code,
+        description,
+        timestamp: new Date().toISOString(),
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
+      });
+
+      // Clear the URL parameters without a full page reload if possible
+      // but keep the user on the home page
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [searchParams]);
+
   const { user, nextAuthUser, loading } = useAuth();
   const activeUser = user || nextAuthUser;
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-64px)]">
+      {/* Auth Error Banner */}
+      {authError && (
+        <div className="bg-rose-500/10 border-b border-rose-500/20 p-4">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-rose-400">
+              <AlertCircle size={20} className="shrink-0" />
+              <div>
+                <p className="text-sm font-bold">Authentication Error: {authError.code}</p>
+                <p className="text-xs opacity-80">{authError.message}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setAuthError(null)}
+              className="p-1 hover:bg-rose-500/10 rounded-full transition-colors text-rose-400"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="relative py-20 lg:py-32 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
