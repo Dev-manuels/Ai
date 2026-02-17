@@ -231,10 +231,22 @@ app.get('/api/performance', async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    const wins = allEvaluated.filter(p => p.isCorrect).length;
+    let totalProfit = 0;
+    let wins = 0;
     const total = allEvaluated.length;
+
+    allEvaluated.forEach(p => {
+      const odds = p.marketOdds || 1.95;
+      if (p.isCorrect) {
+        wins++;
+        totalProfit += (odds - 1);
+      } else {
+        totalProfit -= 1;
+      }
+    });
+
     const winRate = total > 0 ? wins / total : 0;
-    const roi = total > 0 ? (wins * 1.95 - total) / total : 0;
+    const roi = total > 0 ? totalProfit / total : 0;
 
     res.json({
       winRate,
@@ -246,6 +258,118 @@ app.get('/api/performance', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch performance' });
+  }
+});
+
+app.get('/api/performance/segmented', async (req, res) => {
+  try {
+    const allEvaluated = await prisma.prediction.findMany({
+      where: {
+        isCorrect: { not: null },
+        marketOdds: { not: null }
+      },
+      include: {
+        fixture: {
+          include: {
+            league: true
+          }
+        }
+      }
+    });
+
+    const segments: any = {
+      byMarket: {},
+      byLeague: {},
+      byOdds: {
+        '< 1.5': { wins: 0, total: 0, profit: 0 },
+        '1.5 - 2.0': { wins: 0, total: 0, profit: 0 },
+        '2.0 - 3.0': { wins: 0, total: 0, profit: 0 },
+        '> 3.0': { wins: 0, total: 0, profit: 0 }
+      },
+      byConfidence: {
+        '0.5 - 0.6': { wins: 0, total: 0, profit: 0 },
+        '0.6 - 0.7': { wins: 0, total: 0, profit: 0 },
+        '0.7 - 0.8': { wins: 0, total: 0, profit: 0 },
+        '0.8 - 0.9': { wins: 0, total: 0, profit: 0 },
+        '0.9 - 1.0': { wins: 0, total: 0, profit: 0 }
+      },
+      byVersion: {}
+    };
+
+    allEvaluated.forEach(p => {
+      const odds = p.marketOdds!;
+      const isWin = p.isCorrect;
+      const profit = isWin ? odds - 1 : -1;
+
+      // By Market
+      if (!segments.byMarket[p.marketType]) {
+        segments.byMarket[p.marketType] = { wins: 0, total: 0, profit: 0 };
+      }
+      segments.byMarket[p.marketType].wins += isWin ? 1 : 0;
+      segments.byMarket[p.marketType].total += 1;
+      segments.byMarket[p.marketType].profit += profit;
+
+      // By League
+      const leagueName = p.fixture.league.name;
+      if (!segments.byLeague[leagueName]) {
+        segments.byLeague[leagueName] = { wins: 0, total: 0, profit: 0 };
+      }
+      segments.byLeague[leagueName].wins += isWin ? 1 : 0;
+      segments.byLeague[leagueName].total += 1;
+      segments.byLeague[leagueName].profit += profit;
+
+      // By Version
+      if (!segments.byVersion[p.modelVersion]) {
+        segments.byVersion[p.modelVersion] = { wins: 0, total: 0, profit: 0 };
+      }
+      segments.byVersion[p.modelVersion].wins += isWin ? 1 : 0;
+      segments.byVersion[p.modelVersion].total += 1;
+      segments.byVersion[p.modelVersion].profit += profit;
+
+      // By Odds
+      let oddsBucket = '';
+      if (odds < 1.5) oddsBucket = '< 1.5';
+      else if (odds < 2.0) oddsBucket = '1.5 - 2.0';
+      else if (odds < 3.0) oddsBucket = '2.0 - 3.0';
+      else oddsBucket = '> 3.0';
+
+      segments.byOdds[oddsBucket].wins += isWin ? 1 : 0;
+      segments.byOdds[oddsBucket].total += 1;
+      segments.byOdds[oddsBucket].profit += profit;
+
+      // By Confidence
+      let confBucket = '';
+      const conf = p.probability;
+      if (conf >= 0.9) confBucket = '0.9 - 1.0';
+      else if (conf >= 0.8) confBucket = '0.8 - 0.9';
+      else if (conf >= 0.7) confBucket = '0.7 - 0.8';
+      else if (conf >= 0.6) confBucket = '0.6 - 0.7';
+      else if (conf >= 0.5) confBucket = '0.5 - 0.6';
+
+      if (confBucket) {
+        segments.byConfidence[confBucket].wins += isWin ? 1 : 0;
+        segments.byConfidence[confBucket].total += 1;
+        segments.byConfidence[confBucket].profit += profit;
+      }
+    });
+
+    const finalize = (obj: any) => {
+      Object.keys(obj).forEach(key => {
+        const s = obj[key];
+        s.roi = s.total > 0 ? s.profit / s.total : 0;
+        s.winRate = s.total > 0 ? s.wins / s.total : 0;
+      });
+    };
+
+    finalize(segments.byMarket);
+    finalize(segments.byLeague);
+    finalize(segments.byOdds);
+    finalize(segments.byConfidence);
+    finalize(segments.byVersion);
+
+    res.json(segments);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch segmented performance' });
   }
 });
 

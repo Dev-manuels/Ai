@@ -130,12 +130,15 @@ model Prediction {
   strategyId     String?
   strategy       Strategy? @relation(fields: [strategyId], references: [id])
   modelVersion   String
-  homeProb       Float
-  drawProb       Float
-  awayProb       Float
-  ev             Float
-  confidence     Float
-  recommendedBet String
+
+  marketType     String   // e.g., "1X2", "OVER_UNDER_2_5", "BTTS", "HOME_OVER_UNDER_1_5", "AWAY_OVER_UNDER_1_5"
+  selection      String   // e.g., "HOME", "DRAW", "AWAY", "OVER", "UNDER", "YES", "NO"
+  probability    Float
+  fairOdds       Float
+  marketOdds     Float?
+  ev             Float?
+  confidence     Float?
+
   isCorrect      Boolean?
   
   // Auditing & Traceability
@@ -144,6 +147,10 @@ model Prediction {
   followedBy     FollowedPrediction[]
   bets           Bet[]
   createdAt      DateTime @default(now())
+
+  @@index([fixtureId])
+  @@index([marketType])
+  @@index([modelVersion])
 }
 
 model Bet {
